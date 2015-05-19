@@ -25,7 +25,7 @@ class add(object):
 		#- imports necessary
 		import sys, os,signal
 		sys.path.append('modules/nmap_scan/model')
-		from management import scan
+		from scan import scan
 
 		def apagado(sig,frame):
 			output.default("Kill Scan")
