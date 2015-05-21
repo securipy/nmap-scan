@@ -8,7 +8,7 @@ class Database:
 	def __init__(self):
 
 		# Open the database file. If it doesn't exist, create it
-		self.con = sqlite3.connect('brain.db')
+		self.con = sqlite3.connect('modules/nmap-scan/model/brain.db')
 		self.cur = self.con.cursor()
 
 	def __del__(self):
@@ -18,7 +18,7 @@ class Database:
 
 	# Add new audit by customer name, return the given ID to this audit
 	def add_audit(self, cname):
-		sql = "INSERT INTO auditorias(nombre_cliente) VALUES (%s);" % cname
+		sql = "INSERT INTO auditorias(nombre_cliente) VALUES ('%s');" % cname
 		self.cur.execute(sql)
 		self.con.commit()
 		return self.cur.lastrowid
@@ -32,8 +32,9 @@ class Database:
 			return -1
 
 	# Retrieve audits by customer name, if doesn't exist, return -1
-	def retrieve_audit(self, cname):
-		sql = "SELECT * FROM auditorias WHERE nombre_cliente = %s;" % cname
+	def retrieve_audit_name(self, cname):
+		sql = "SELECT * FROM auditorias WHERE nombre_cliente = '%s';" % cname
+		print sql
 		if self.cur.execute(sql) > 0:
 			return self.cur.fetchall()
 		else:

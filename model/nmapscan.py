@@ -12,9 +12,9 @@ __status__ 		= "Development"
 
 
 
-class nmap-scan:
+class NmapScan:
 
-	def __init__(self, host=127.0.0.1):
+	def __init__(self, host='127.0.0.1'):
 		self.host = host
 
 

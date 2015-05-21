@@ -24,8 +24,9 @@ class add(object):
 	def __init__(self, output, translate, log, installer,options):
 		#- imports necessary
 		import sys, os,signal
-		sys.path.append('modules/nmap_scan/model')
-		from scan import scan
+		sys.path.append('modules/nmap-scan/model')
+		from scan import Scan
+		scan = Scan()
 
 		def apagado(sig,frame):
 			output.default("Kill Scan")
@@ -33,7 +34,7 @@ class add(object):
 		signal.signal(signal.SIGINT, apagado)
 		#- Operations
 		#- Example:
-		interpret = translate.init('nmap_scan', 'modules/nmap_scan/locale')
+		interpret = translate.init('nmap_scan', 'modules/nmap-scan/locale')
 		_ = interpret.ugettext
 		output.default('Nmap Scan')
 		def __menu__():
@@ -46,7 +47,7 @@ class add(object):
 			output.default('0. Exit')
 
 		def option1():
-			scan.selectaudit(_, log)
+			scan.selectaudit()
 
 		def option2():
 			scan.discovery(_, log)
