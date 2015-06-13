@@ -34,7 +34,6 @@ class Database:
 	# Retrieve audits by customer name, if doesn't exist, return -1
 	def retrieve_audit_name(self, cname):
 		sql = "SELECT * FROM auditorias WHERE nombre_cliente = '%s';" % cname
-		print sql
 		if self.cur.execute(sql) > 0:
 			return self.cur.fetchall()
 		else:
@@ -42,23 +41,38 @@ class Database:
 
 	# Retrieve audits by id, if doesn't exist, return -1
 	def retrieve_audit(self, id_audit):
-		sql = "SELECT * FROM auditorias WHERE id = %s;" % id_audit
+		sql = "SELECT * FROM auditorias WHERE id = '%s';" % id_audit
 		if self.cur.execute(sql) > 0:
 			return self.cur.fetchall()
 		else:
 			return -1
 
 	# Add new revision passing the audit id and the revision number as arguments. Returns the given id to the record
-	def add_revision(self, id_audit, rev_num):
-		sql = "INSERT INTO revision(fecha, id_auditorias, revision) VALUES (CURRENT_TIMESTAMP,%s,%s);"
-		args = (id_audit, rev_num)
-		self.cur.execute(sql, args)
+	def add_revision(self, id_audit, rev_name):
+		sql = "INSERT INTO revision(fecha, id_auditorias, revision) VALUES (CURRENT_TIMESTAMP,'%s','%s');" % ((id_audit, rev_name))
+		self.cur.execute(sql)
 		self.con.commit()
 		return self.cur.lastrowid
 
+	# Retrieve all revisions
+	def retrieve_revisions(self):
+		sql = "SELECT * FROM revision;"
+		if self.cur.execute(sql) > 0:
+			return self.cur.fetchall()
+		else:
+			return -1
+
 	# Retrieve revision by audit id
-	def retrieve_revison(self, id_audit):
-		sql = "SELECT * FROM revision WHERE id_auditorias = %s;" % id_audit
+	def retrieve_revison_id(self, id_audit):
+		sql = "SELECT * FROM revision WHERE id_auditorias = '%s';" % id_audit
+		if self.cur.execute(sql) > 0:
+			return self.cur.fetchall()
+		else:
+			return -1
+
+	# Retrieve revision by audit nmae
+	def retrieve_revison_name(self, rev_name):
+		sql = "SELECT * FROM revision WHERE revision = '%s';" % rev_name
 		if self.cur.execute(sql) > 0:
 			return self.cur.fetchall()
 		else:
@@ -66,17 +80,16 @@ class Database:
 
 	# Retrieve revision by date
 	def retrieve_revison(self, date):
-		sql = "SELECT * FROM revision WHERE fecha = %s;" % date
+		sql = "SELECT * FROM revision WHERE fecha = '%s';" % date
 		if self.cur.execute(sql) > 0:
 			return self.cur.fetchall()
 		else:
 			return -1
 
 	# Add new host, retun the id given to the record
-	def add_host(self, os, state, id_rev, ip, date, mac):
-		sql = "INSERT INTO hosts(OS, estado, id_revision, ip, fecha, mac) VALUES (%s,%s,%s,%s,%s,%s);"
-		args = (os, state, id_rev, ip, date, mac)
-		self.cur.execute(sql, args)
+	def add_host(self, state, id_rev, ip, mac):
+		sql = "INSERT INTO hosts(estado, id_revision, ip, fecha, mac) VALUES ('%s','%s','%s',CURRENT_TIMESTAMP,'%s');" % (state, id_rev, ip, mac)
+		self.cur.execute(sql)
 		self.con.commit()
 		return self.cur.lastrowid
 

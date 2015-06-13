@@ -15,6 +15,8 @@
 # Facebook: https://www.facebook.com/pages/Admin-Server/795147837179555?fref=ts
 # Twitter: https://twitter.com/4dminserver
 
+from teco import color, style
+
 class add(object):
 	#- @output.[option](default, error)(text) -> printed by stdout
 	#- @translate.[option](init('nameTranslate')) -> initializes the translation file
@@ -38,31 +40,14 @@ class add(object):
 		_ = interpret.ugettext
 		output.default('Nmap Scan')
 		def __menu__():
-			output.default('1. Select audit')
-			output.default('2. Discovery')
-			output.default('3. Versiones')
-			output.default('4. Script')
-			output.default('5. Custom Parameters')
-			output.default('6. Puertos')
-			output.default('0. Exit')
-
-		def option1():
-			scan.selectaudit()
-
-		def option2():
-			scan.discovery(_, log)
-		
-		def option3():
-			scan.version(_, log)
-
-		def option4():
-			scan.script(_, log)			
-
-		def option5():
-			scan.CustomParameters(_, log)	
-
-		def option6():
-			scan.puertos(_, log)
+			print color('magenta', '1. Select audit')
+			print color('magenta', '2. Select revision')
+			print color('magenta', '3. Discovery')
+			print color('magenta', '4. Versiones')
+			print color('magenta', '5. Script')
+			print color('magenta', '6. Custom Parameters')
+			print color('magenta', '7. Puertos')
+			print color('rojo', '0. Exit')
 		
 		__menu__()
 
@@ -71,17 +56,19 @@ class add(object):
 			options.set_completer(help.complete)
 			sentencia = raw_input("Nmap >> ")
 			if sentencia == '1':
-				option1()
+				scan.select_audit()
 			elif sentencia == '2':
-				option2()
+				scan.select_revision()
 			elif sentencia == '3':
-				option3()	
+				scan.discovery()
 			elif sentencia == '4':
-				option4()	
+				scan.version(_, log)
 			elif sentencia == '5':
-				option5()			
+				scan.script(_, log)		
 			elif sentencia == '6':
-				option6()						
+				scan.CustomParameters(_, log)
+			elif sentencia == '7':
+				scan.puertos(_, log)				
 			elif sentencia == '0':
 				sys.exit()
 			elif sentencia == 'exit':
