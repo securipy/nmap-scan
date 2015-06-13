@@ -93,6 +93,13 @@ class Database:
 		self.con.commit()
 		return self.cur.lastrowid
 
+	def hosts_now_down(self, id_audit, id_rev):
+		sql = "select * from hosts where mac in (select mac from hosts where id_revision = (select id from revision where id in (select max(id) from revision where id_auditorias = '%s' and id != '%s')) and status='up') and mac not in (select mac from hosts where id_revision = '%s')" % (id_audit, id_rev, id_rev)
+		if self.cur.execute(sql) > 0:
+			return self.cur.fetchall()
+		else:
+			return -1
+
 	# Retrieve host by mac
 	def retrieve_host(self, mac):
 		sql = "SELECT * FROM hosts WHERE mac = %s;" % mac

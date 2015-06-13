@@ -80,7 +80,7 @@ class Scan:
 				self.nom_rev = new_rev
 		elif rev_action == '2':
 			# Select existing revision
-			all_revs = self.db.retrieve_revisions()
+			all_revs = self.db.retrieve_revison_id(self.num_audit)
 			if len(all_revs) == 0:
 				print color("rojo", "\nNo existing revisions\n")
 			for fecha, num, id_audit, rev in all_revs:
@@ -101,16 +101,18 @@ class Scan:
 		while host_scan == "":
 			host_scan = raw_input('Type an IP or range')
 		self.nm.scan(hosts=host_scan, arguments='-n -sP -PE -PA 21,23,80,3389')
-		hosts_list = [(x, self.nm[x]['vendor'].keys()) for x in self.nm.all_hosts()]
-		for host in hosts_list:
-			ip, vendor, os = host
-			if len(vendor) == 0:
-				mac = None
-			else:
-				mac = vendor[0]
-			print self.num_rev, ip, mac
-			self.db.add_host('up', self.num_rev, ip, mac)
-
+		for host in self.nm.all_hosts():
+			addresses = self.nm[host]['addresses']
+			try:
+				mac = addresses['mac']
+				ip = host
+				self.db.add_host('up', self.num_rev, ip, mac)
+			except:
+				mac = "NULL"
+		down_hosts = self.db.hosts_now_down(self.num_audit, self.num_rev)
+		for h in down_hosts:
+			os, status, id, rev, ip, date, mac = h
+			self.db.add_host('down', self.num_rev, ip, mac)
 
 
 	def __check_audit_rev(self):
