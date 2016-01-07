@@ -47,6 +47,7 @@ class add(object):
 			print color('magenta', '5. Script')
 			print color('magenta', '6. Custom Parameters')
 			print color('magenta', '7. Puertos')
+			print color('magenta', '8. What is my base IP')
 			print color('rojo', '0. Exit')
 		
 		__menu__()
@@ -62,13 +63,18 @@ class add(object):
 			elif sentencia == '3':
 				scan.discovery()
 			elif sentencia == '4':
-				scan.version(_, log)
+				# scan.version(_, log) #M
+				scan.version()
 			elif sentencia == '5':
-				scan.script(_, log)		
+				# scan.script(_, log) #M
+				scan.script()
 			elif sentencia == '6':
 				scan.CustomParameters(_, log)
 			elif sentencia == '7':
-				scan.puertos(_, log)				
+				# scan.puertos(_, log)
+				scan.puertos()
+			elif sentencia == '8':
+				scan.calcIPbase()
 			elif sentencia == '0':
 				sys.exit()
 			elif sentencia == 'exit':
