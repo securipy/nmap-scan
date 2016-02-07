@@ -103,14 +103,15 @@ class Scan:
 		self.__addLastRevisionHosts()
 		# ask for ip to scan
 		hosts2scan = self.__ask4hosts2scan()
-		# save ip to scan
+		# save complete hosts ip to scan
 		hosts2scan_longFormat=self.cf.IP2scan(hosts2scan) # example hosts2scan_longFormat=('192.168.1.50', '192.168.1.51', '192.168.1.52')
-		# scan
-		self.nm.scan(hosts=hosts2scan, arguments='-n -sP')
-		# show ip of hosts up
-		print 'hosts up: '+str(self.nm.all_hosts())
-		# actualice hosts table
-		self.__actualiceTableHosts(hosts2scan_longFormat)
+		if hosts2scan_longFormat != -1:
+			# scan
+			self.nm.scan(hosts=hosts2scan, arguments='-n -sP')
+			# show ip of hosts up
+			print 'hosts up: '+str(self.nm.all_hosts())
+			# actualice hosts table
+			self.__actualiceTableHosts(hosts2scan_longFormat)
 
 	def discoverOS(self):
 		# check if a revision and audit were selected
@@ -120,7 +121,7 @@ class Scan:
 		# ask for ip to scan
 		[hosts2scan_shortFormat, hosts2scan_longFormat] = self.__ask4hosts2scanOptions()
 		# save ip to scan
-		if hosts2scan_shortFormat != -1:
+		if hosts2scan_shortFormat != -1 and hosts2scan_longFormat != -1:
 			# scan
 			self.__scanDiscoverOS(hosts2scan_shortFormat)
 			# show ip of hosts up
@@ -155,21 +156,35 @@ class Scan:
 			# add hosts and ports to their tables
 			self.__actualiceTablePuertosAndHosts()
 
-	def portsFile(self):
-	# create a .txt file, one per port indicated, with hosts IP up with those ports up
-		# check if a revision and audit were selected
-		self.__check_audit_rev()
-		ports2File = self.__ask4ports2search()
-		for port in ports2File:
-			portHostsIP = self.__searchPortHostsIP(port)
-			if portHostsIP != -1: # port at database
-				self.__createFile(port, portHostsIP)
-
 	def CustomParameters(self):
 		print 'Coming soon'
 
 	def puertos(self):
-		print 'Coming soon'
+	# introduce hosts ip and ports to scan and check if ports are open or closed, not more information is saved
+		# check if a revision and audit were selected
+		self.__check_audit_rev()
+		# add last revison hosts (once per revision)
+		self.__addLastRevisionHosts()
+		# ask for ip to scan
+		hosts2scan = self.__ask4hosts2scanOptions()[0]
+		if hosts2scan != -1:
+			# ask ports to export
+			[ports2scan_short, ports2scan_long] = self.__ask4ports2search()
+			# scan
+			self.__scanPorts(hosts2scan, ports2scan_short)
+			# add hosts and ports to their tables
+			self.__actualiceTablePuertosAndHosts(1, ports2scan_long)
+
+	def portsFile(self):
+	# create a .txt file, one per port indicated, with hosts IP up with those ports open
+		# check if a revision and audit were selected
+		self.__check_audit_rev()
+		# ask ports to export
+		ports2File = self.__ask4ports2search()[1] # list of int numbers as strings, with all ports
+		for port in ports2File:
+			portHostsIP = self.__searchPortHostsIP(port)
+			if portHostsIP != -1: # port at database
+				self.__createFile(port, portHostsIP)
 
 	def __check_audit_rev(self):
 		if self.num_audit == None and self.nom_audit == None:
@@ -206,6 +221,7 @@ class Scan:
 			else:
 				print "No hosts ip discovered for this revision"
 				hosts2scan_shortFormat = -1
+				hosts2scan_longFormat = -1
 				IPdiscovered = -1
 		elif option2scan == 2:
 			hosts2scan_shortFormat = self.__ask4hosts2scan()
@@ -235,6 +251,14 @@ class Scan:
 	def __scanScript(self, hosts2scan):
 		print 'Port scan started'
 		self.nm.scan(hosts=hosts2scan, arguments="-sV -sC")
+
+	# scan for Ports option
+	def __scanPorts(self, hosts2scan, ports2scan):
+		# hosts2scan: string
+		# ports2scan: string
+		print 'Port scan started'
+		self.nm.scan(hosts=hosts2scan, arguments="-p"+ports2scan)
+
 
 	def __actualiceTableHosts(self, hosts2scan): # example ip2scan=('192.168.1.50', '192.168.1.51', '192.168.1.52')
 		# add new hosts
@@ -267,20 +291,22 @@ class Scan:
 			for id_host in id_hosts2putDown:
 				self.__addDownHost(id_host)
 
-	# add new row with hots down at hosts table
+	# add new row with hosts down at hosts table
 	def __addDownHost(self, id_host):
 		down_host = self.db.retrieve_host_by_id(id_host)
 		os, status, id, rev, ip, date, mac = down_host[0]
 		self.db.add_host('down', self.num_rev, ip, mac)
 
 	# actualice puertos table and add to hosts table new hots up scanned
-	def __actualiceTablePuertosAndHosts(self):
+	def __actualiceTablePuertosAndHosts(self, portScanOption=0, ports2scan=0):
+		# ports2scan: list
 		# work with scanned ports
-		if self.nm.all_hosts() != []: # some ports up, if all ports are down then nm.all_hosts()=[] (empty)
-			# work with each host with ports ups
+		if self.nm.all_hosts() != []: # some ports open, if all ports are closed then nm.all_hosts()=[] (empty)
+			# work with each host with ports open
+			print 'Open ports'
 			for hostWithPorts in self.nm.all_hosts():
 				# check info scanned
-				[infoMac, mac, infoTCP, ports] = self.__checkMacPortsInfo(hostWithPorts)
+				[infoMac, mac, infoTCP, portsUp] = self.__checkScannedInfo(hostWithPorts)
 				# add host to hosts table (new hosts can be discovered)
 				self.__addUpHost(hostWithPorts, mac)
 				# get id of the host (using mac) with we are working now
@@ -290,12 +316,12 @@ class Scan:
 				if infoMac != 1:
 					print str(hostWithPorts) + " no mac info"
 				if infoTCP == 1:
-					# show scanned ports
-					print str(hostWithPorts) + ' ' + str(ports)
-					# add new information to the table puertos
-					self.__addNewPorts(id_hostWithPorts, ports, hostWithPorts)
-					# add 'down' ports
-					self.__addDownPorts(id_hostWithPorts, ports)
+					# show scanned information
+					self.__printPortsScan(hostWithPorts, portsUp, portScanOption)
+					# add new information to puertos table
+					self.__addNewPorts(id_hostWithPorts, portsUp, hostWithPorts, portScanOption)
+					# add 'closed' ports
+					self.__addClosedPorts(id_hostWithPorts, portsUp, portScanOption, ports2scan)
 				else:
 					print str(hostWithPorts) + " no ports info"
 			# put down hosts at hosts table
@@ -304,7 +330,7 @@ class Scan:
 			print 'No ports'
 
 	# check scan results
-	def __checkMacPortsInfo(self, hostWithPorts):
+	def __checkScannedInfo(self, hostWithPorts):
 		try: # if not port information is scanned, self.nm[hostWithPorts]['addresses']['mac'] and ports = self.nm[hostWithPorts]['tcp'].keys() generate an exception
 			# mac of the host
 			mac = self.nm[hostWithPorts]['addresses']['mac']
@@ -312,7 +338,7 @@ class Scan:
 		except:
 			mac = None
 			informationMac = -1
-		try: # if no mac information, then no tcp information
+		try:
 			ports = self.nm[hostWithPorts]['tcp'].keys()
 			informationTCP = 1
 		except:
@@ -338,18 +364,22 @@ class Scan:
 			if check_idPreviousHost_with_portsValues == 1:
 				self.db.add_old_ports4host (previousHostID, actualHostID)
 
-	def __addNewPorts(self, id_hostWithPorts, ports, hostWithPorts):
+	def __addNewPorts(self, id_hostWithPorts, ports, hostWithPorts, portScanOption=0):
 		# work with each port of the host
 		for port in ports:
 			# get port values
-			portInformation = self.__getPortInformation(hostWithPorts, port) # portInformation = [portVersionInformation, portScriptInformation]
+			portInformation = self.__getPortInformation(hostWithPorts, port) # portInformation = [portVersionInformation, portScriptInformation, portPortInformation]
 			# add port
 			# always add in order to know last scan time
-			self.db.add_port('up', id_hostWithPorts, port, portInformation[0], portInformation[1])
+			if portScanOption == 0:
+				state = 'open'
+			else:
+				state = portInformation[2]
+			self.db.add_port(state, id_hostWithPorts, port, portInformation[0], portInformation[1])
 
 	def __getPortInformation(self, hostWithPorts, port):
 		# sometimes the results have not all those values
-		# version information
+		# version scan information
 		try:
 			product = "%s" %self.nm[hostWithPorts]['tcp'][port]['product']
 		except:
@@ -367,25 +397,37 @@ class Scan:
 		except:
 			extrainfo = None
 		portVersionInformation = 'product: %s \nversion: %s \nname: %s \nextrainfo: %s' %(product, version, name, extrainfo)
-		# script information
+		# script scan information
 		try:
 			script = self.nm[hostWithPorts]['tcp'][port]['script'] # dictionary
 			portScriptInformation = self.cf.convertDictionary2String(script)
 		except:
 			portScriptInformation = None
-		return [portVersionInformation, portScriptInformation]
+		# port scan information (state)
+		# only at this option we check if state is open or closed when put the port open or closed because the other scan options only retrieve open ports
+		try:
+			portPortInformation = self.nm[hostWithPorts]['tcp'][port]['state'] # string
+		except:
+			portPortInformation = None
 
-	def __addDownPorts(self, id_hostWithPorts, ports):
-		# ports at the db for a id_host that where 'up'
-		id_ports2putDown = self.db.retrieve_id_ports2putDown(id_hostWithPorts, ports)
-		if id_ports2putDown != -1: # at the db are ports associated to a host
+		return [portVersionInformation, portScriptInformation, portPortInformation]
+
+	def __addClosedPorts(self, id_hostWithPorts, portsUp, portScanOption=0, portsScanned=0):
+		# portScanned: list of int numbers as strings
+		if portScanOption == 0:
+			# ports at the db for a id_host that where 'open'
+			id_ports2putClosed = self.db.retrieve_id_ports2putClosed(id_hostWithPorts, portsUp)
+		else:
+			# ports to put as closed ports had to been scanned
+			id_ports2putClosed = self.db.retrieve_id_ports2putClosedPortOption(id_hostWithPorts, portsUp, portsScanned)
+		if id_ports2putClosed != -1: # at the db are ports associated to a host
 			# work with each port
-			for id_port in id_ports2putDown:
-				down_port = self.db.retrieve_port_by_id (id_port)
-				if down_port != -1:
-					id_port, id_hosts_port, puerto_port, estado_port, version_port, fecha_port, scripts_port = down_port[0]
-					self.db.add_port('down', id_hostWithPorts, puerto_port, version_port, scripts_port)
-					#self.db.update_port_estadoANDfecha('down', id_hostWithPorts, old_port[0])
+			for id_port in id_ports2putClosed:
+				closed_port = self.db.retrieve_port_by_id (id_port)
+				if closed_port != -1:
+					id_port, id_hosts_port, puerto_port, estado_port, version_port, fecha_port, scripts_port = closed_port[0]
+					self.db.add_port('closed', id_hostWithPorts, puerto_port, version_port, scripts_port)
+					#self.db.update_port_estadoANDfecha('closed', id_hostWithPorts, old_port[0])
 
 	def calcIPbase(self):
 		ip_mask = raw_input('Write your ipv4/mask (e.g. 192.168.1.5/255.255.255.0 or 192.168.1.5/24): ')
@@ -403,16 +445,31 @@ class Scan:
 	def __ask4ports2search(self):
 		ports2search = ""
 		while ports2search == "":
-			ports2search = raw_input('Type ports to export IP associated (no spaces): ')
-		ports2search = self.cf.formatPorts(ports2search) # list of strings
-		return ports2search
+			ports2search = raw_input('Type ports (no spaces): ')
+		por2search_string = ports2search # example '20-22,80'
+		ports2search_listOfStrings = self.cf.convertSring2ListWitchAllValues(ports2search) # example ['20', '21', '22, '80']
+		return [por2search_string, ports2search_listOfStrings]
+
+
+	def __printPortsScan(self, hostWithPorts, ports, portScanOption):
+		if portScanOption == 0:
+			# show scanned ports
+			print str(hostWithPorts) + ' ' + str(ports)
+		else:
+			# Port scan only show open ports
+			portsOpen = []
+			for port in ports:
+				if self.__getPortInformation(hostWithPorts, port)[2] == 'open': # portInformation = [portVersionInformation, portScriptInformation, portPortInformation]
+					portsOpen.append(port)
+			print str(hostWithPorts) + ' ' + str(portsOpen)
+
 
 	def __searchPortHostsIP(self, port):
 		# port: string
 		# check if db has ports for this revision
 		if self.db.check_portAtDB(self.num_audit, self.num_rev, port) != -1:
 			hostsIP = []
-			# get hosts IP that are up with this port up
+			# get hosts IP that are up with this port open
 			portHostsIP = self.__getPortHostsIP(port) # list of strings, example: [u'192.168.1.1', u'192.168.1.33']
 			if portHostsIP != -1:
 				for hostIP in portHostsIP:
@@ -453,7 +510,7 @@ class Scan:
 		self.__writeHostsIP(file, portHostsIP)
 		file.close()
 		if self.ck.checkListEmpty(portHostsIP) != -1:
-			print 'Port %s at database but port or hosts are down \nFile created empty' %port
+			print 'Port %s at database but port is closed or hosts are down \nFile created empty' %port
 		print 'File created: ' + fileName
 
 	def __checkFileExists(self, fileName):

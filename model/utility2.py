@@ -1,4 +1,5 @@
 #!/usr/bin/python
+#-*-coding:utf-8-*-
 
 import sys, re
 from teco import color, style
@@ -113,19 +114,120 @@ class CalcIP:
 class ChangeFormat:
 
     def __init__(self):
-        self.cIP =CalcIP()
+        self.cIP = CalcIP()
+        self.ck = Check()
 
-    def formatRange(self, ip_primero, ip_ultimo): # ip [=] string '1.2.3.4'
+    def IP2scan(self,introduced):
+        # work with class C ip
+        # example '192.168.1.1-5,199-201' -> ('192.168.1.1', '192.168.1.2', '192.168.1.3', '192.168.1.4', '192.168.1.5', '192.168.1.199', '192.168.1.200', '192.168.1.201')
+        if self.ck.checkCharacter(introduced) == 1:
+            print color('rojo', 'Invalid syntax')
+            return -1
+        else:
+            # separators
+            separate_dash = re.compile('-')
+            # separate_slash = re.compile('/')
+            separate_dot = re.compile('\.')
+            try:
+                # separate hosts ip introduced
+                # create a list formed with parts separated by comas
+                ip2scan = [] # save hosts IP at complete format
+                # ip range indicated using slash
+                if len(re.findall("/",introduced)): # detects if any slash is has been used
+                    [ipBase, ipFirstHost, ipLastHost, ipBroadcast, mask]=self.cIP.calculate_ip(introduced)
+                    ip2scan.extend(self.createRange(ipFirstHost, ipLastHost))
+                else: # if no slash used, then a dash can be used
+                    partsComa = self.createListComaParts(introduced) # '192.168.1.1,5,10-12' -> ['192.168.1.1','5','10-12'] or '192.168.1.1' -> ['192.168.1.1']
+                    [ipAsList, firstRange] = self.retrieveIPListAndFirstRange(partsComa[0], separate_dash, separate_dot)  # save first IP, it is at complete format only before the first coma
+                    ip2scan.extend(firstRange) # save first IP to scan
+                    # work with each part separated by coma
+                    for partComa in partsComa[1:]: # first part already included
+                        # IP range indicated with dash (-)
+                        if len(re.findall("-",partComa)) >= 1:
+                            rangeDashParts = separate_dash.split(partComa)
+                            range_dash = self.rangeWorkWithDashPart(ipAsList, rangeDashParts)
+                            ip2scan.extend(range_dash)
+                        # only one number indicated, example: '192.168.1.1,33', 33 in this example
+                        else:
+                            # example: '192.168.1.1,33' -> ['192.168.1.1', '192.168.1.33']
+                            ip2add = '%s.%s.%s.%s' %(ipAsList[0],ipAsList[1],ipAsList[2], partComa)
+                            ip2scan.append(ip2add)
+                #ip2scan = list(set(ip2scan)) # eliminate repeated values
+                #ip2scan.reverse() # eliminate repeated values inverts list order
+                return tuple(ip2scan) # example: ['192.168.1.50', '192.168.1.51', '192.168.1.52'] -> ('192.168.1.50', '192.168.1.51', '192.168.1.52')
+            except:
+                print color('rojo', 'Invalid syntax')
+                return -1
+
+    def createRange(self, first_ip, last_ip): # ip [=] string '1.2.3.4'
         # for ip class C
-        ip_primero_partesLista = re.compile('\.').split(ip_primero) # ['1','2','3','4']
-        ip_ultimo_partesLista = re.compile('\.').split(ip_ultimo)
-        ip_inicio = '%s.%s.%s.' %(ip_primero_partesLista[0],ip_primero_partesLista[1],ip_primero_partesLista[2]) # ip class C
-        IP_rango = []
-        for numero in range(int(ip_primero_partesLista[-1]),int(ip_ultimo_partesLista[-1])+1):
-            IP_rango.append(ip_inicio+str(numero))
-        return IP_rango
+        # example: first_ip = '192.168.1.1' and last_ip = '192.168.1.4' -> range_ip = ['192.168.1.1', '192.168.1.2', '192.168.1.3', '192.168.1.4']
+        first_ip_ListParts = re.compile('\.').split(first_ip) # ['1','2','3','4']
+        last_ip_ListParts = re.compile('\.').split(last_ip)
+        ip_beginning = '%s.%s.%s.' %(first_ip_ListParts[0],first_ip_ListParts[1],first_ip_ListParts[2]) # ip class C
+        ipRange = []
+        for number in range(int(first_ip_ListParts[-1]),int(last_ip_ListParts[-1])+1):
+            ipRange.append(ip_beginning+str(number))
+        return ipRange
 
-    def formatPorts(self, ports): # converts example '1,2,4-6,7,10-12,13,15' to ['1', '2', '4', '5', '6', '7', '10', '11', '12', '13', '15']
+    def createListComaParts(self, strIntroduced):
+        # example: '192.168.1.1,5,10-12' -> ['192.168.1.1','5','10-12']
+        # example 2: '192.168.1.1' -> ['192.168.1.1']
+        # example 3: '192.168.1.1-2' -> ['192.168.1.1-2']
+        separate_coma = re.compile(',') # separator
+        if len(re.findall(",",strIntroduced)) >= 1: # any coma introduced
+            comaParts = separate_coma.split(strIntroduced)
+        else:
+            comaParts = [strIntroduced]
+        return comaParts
+
+    def retrieveIPListAndFirstRange(self, firstComaPart, separate_dash, separate_dot):
+        # detected if a dash is used
+        if len(re.findall("-",firstComaPart)) >= 1:
+            rangeParts = separate_dash.split(firstComaPart) # ['192.168.1.1-3'] -> ['192.168.1.1','3']
+            firstIP = rangeParts[0]
+            # get first IP as list, it's 3 first numbers are important because they are only at the first ip indicated before the first coma
+            firstIPAsList = separate_dot.split(firstIP) # ['192.168.1.1'] -> ['192','168','1','1'])
+            firstRange = self.rangeWorkWithDashPart(firstIPAsList, [firstIPAsList[3], rangeParts[1]])
+        else: # only one IP introduced
+            # get first IP as list, it's 3 first numbers are important because they are only at the first ip indicated before the first coma
+            firstIPAsList = separate_dot.split(firstComaPart) # ['192.168.1.1'] -> ['192','168','1','1'])
+            firstRange = firstComaPart
+        return [firstIPAsList, firstRange]
+
+    def rangeWorkWithDashPart(self, completeIPAsList, rangeIP):
+        # class C ip
+        # example 1: '192.168.1.3-5' -> ['192.168.1.3', '192.168.1.4', '192.168.1.5']
+        # example 2: '3-5' neccesary to introduce first parts of the ip: '3-5' -> ['x.x.x.3', 'x.x.x.4', 'x.x.x.5']
+        # rangeIP: ['3','5']
+        # completeIPAsList: ['x','x','x','1'] (1 is an example)
+        first_ip = '%s.%s.%s.%s' %(completeIPAsList[0],completeIPAsList[1],completeIPAsList[2], rangeIP[0])
+        last_ip = '%s.%s.%s.%s' %(completeIPAsList[0],completeIPAsList[1],completeIPAsList[2], rangeIP[1])
+        range_ip = self.createRange(first_ip, last_ip)
+        return range_ip
+
+
+    def hosts2nmapFormat (self, IPList):
+        # converts a list to the NMap required format
+        # for class C
+        # example ['192.168.1.1', '192.168.1.200', '192.168.1.33'] to '192.168.1.1,200,33'
+        separate_dot = re.compile('\.') # separador
+        ipReturn = IPList[0]
+        for ip in IPList[1:]:
+            ip_partes = separate_dot.split(ip)
+            ipReturn = '%s,%s' %(ipReturn,ip_partes[3])
+        return ipReturn
+
+    # sql queries do not accept some characters
+    def eliminateCharacters (self, string2change):
+        rmCh1 = string2change.replace("{", "")
+        rmCh2 = rmCh1.replace("}", "")
+        rmCh3 = rmCh2.replace('"', "")
+        stringFinal = rmCh3.replace("'", "")
+        return stringFinal
+
+    def convertSring2ListWitchAllValues(self, ports):
+        # example '1,2,4-6,7,10-12,13,15' to ['1', '2', '4', '5', '6', '7', '10', '11', '12', '13', '15']
         portsReturn = []
         # first take each port under comas
         if len(re.findall(",",ports)) >= 1: # check if there are comas (,)
@@ -152,70 +254,6 @@ class ChangeFormat:
             portsReturn.append(ports)
         return portsReturn
 
-    def IP2scan(self,introducido):
-        # separadores
-        separar_coma = re.compile(',')
-        separar_guion = re.compile('-')
-        #separar_barra = re.compile('/')
-        separar_punto = re.compile('\.')
-        # ip
-        ip = [0,0,0,0]
-        try:
-            # separar lo introducido
-            # partes separadas por comas
-            if len(re.findall(",",introducido)) >= 1: # de introducir alguna coma
-                partes_coma = separar_coma.split(introducido)
-            else:
-                partes_coma = [introducido]
-            IP_rango = []
-            for i in range(len(partes_coma)):
-                # rangos de ip indicados con guion
-                if len(re.findall("-",partes_coma[i])) >= 1:
-                    rangoIP = separar_guion.split(partes_coma[i])
-                    ip_partesLista = separar_punto.split(rangoIP[0])
-                    ip_primero = rangoIP[0]
-                    ip_ultimo = '%s.%s.%s.%s' %(ip_partesLista[0],ip_partesLista[1],ip_partesLista[2], rangoIP[1])
-                    IP_rango.extend(self.formatRange(ip_primero, ip_ultimo))
-                # rangos de ip indicados con barra
-                elif len(re.findall("/",partes_coma[i])): # de introducir alguna barra
-                    [ipBase, ipHost1, ipHostUltimo, ipBroadcast, mask]=self.cIP.calculate_ip(partes_coma[i])
-                    IP_rango.extend(self.formatRange(ipHost1, ipHostUltimo))
-                # indicar una sola direccion ip
-                else:
-                    ip_partes = separar_punto.split(partes_coma[i])
-                    if len(ip_partes)==4:
-                        # formed first numbers of the ip to add later the number after coma
-                        # Example: introducido = '192.168.1.1,33' -> 192.168.1.1 and 192.168.1.33
-                        ip[0] = ip_partes[0]
-                        ip[1] = ip_partes[1]
-                        ip[2] = ip_partes[2]
-                        ip[3] = ip_partes[3]
-                        IP_rango.append(partes_coma[i])
-                    elif len(ip_partes)==1: # if after coma is a numer, example '192.168.1.1,33', then partes_coma[i]=33
-                        ip2add = '%s.%s.%s.%s' %(ip[0],ip[1],ip[2], partes_coma[i])
-                        IP_rango.append(ip2add)
-            return tuple(IP_rango) # example: ['192.168.1.50', '192.168.1.51', '192.168.1.52'] -> ('192.168.1.50', '192.168.1.51', '192.168.1.52')
-        except:
-            print color('rojo', 'Invalid syntax')
-
-    def hosts2nmapFormat (self, IPList):
-        # converts a list to the NMap required format
-        # for class C
-        # example ['192.168.1.1', '192.168.1.200', '192.168.1.33'] to '192.168.1.1,200,33'
-        separar_punto = re.compile('\.') # separador
-        ipReturn = IPList[0]
-        for ip in IPList[1:]:
-            ip_partes = separar_punto.split(ip)
-            ipReturn = '%s,%s' %(ipReturn,ip_partes[3])
-        return ipReturn
-
-    # sql queries do not accept some characters
-    def eliminateCharacters (self, string2change):
-        rmCh1 = string2change.replace("{", "")
-        rmCh2 = rmCh1.replace("}", "")
-        rmCh3 = rmCh2.replace('"', "")
-        stringFinal = rmCh3.replace("'", "")
-        return stringFinal
 
     def convertDictionary2String(self, dictionary):
         # save dictionary values in a list
@@ -253,6 +291,14 @@ class Check:
 
     def checkListEmpty (self, list):
         if list == []:
+            return 1
+        else:
+            return -1
+
+    def checkCharacter(self, string):
+         # if a character is in a string, it returns 1
+        chars = set('abcdefghijklmnñopqrstuvwxyzABCDEFGHIJKLMÑNOPQRSTUVWXYZ')
+        if any((str_ch in chars) for str_ch in string):
             return 1
         else:
             return -1

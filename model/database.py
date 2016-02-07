@@ -280,12 +280,12 @@ class Database:
 		else:
 			return -1
 
-	# Retrieve id of ports that are up at the db for this id_host but are not scanned as ports up; get last row added
-	def retrieve_id_ports2putDown(self, id_host, portsUp):
-		portsUp = tuple(portsUp) # necessary for the sql petition
-		if len(portsUp)==1:
-			portsUp = portsUp+portsUp    # avoid tuple to end with coma
-		sql = "SELECT id FROM puertos WHERE puerto NOT IN " + str(portsUp) + " AND estado = 'up' AND id_hosts = '%s' AND id IN (SELECT id FROM (SELECT id, COUNT(*) AS c FROM puertos GROUP BY puerto HAVING c>=1));"  % id_host
+	# Retrieve id of ports that are open at the db for this id_host but are not scanned as ports open; get last row added
+	def retrieve_id_ports2putClosed(self, id_host, portsClosed):
+		portsClosed = tuple(portsClosed) # necessary a tuple for the sql petition
+		if len(portsClosed)==1:
+			portsClosed = portsClosed+portsClosed    # avoid tuple to end with coma
+		sql = "SELECT id FROM puertos WHERE puerto NOT IN " + str(portsClosed) + " AND estado = 'open' AND id_hosts = '%s' AND id IN (SELECT id FROM (SELECT id, COUNT(*) AS c FROM puertos GROUP BY puerto HAVING c>=1));"  % id_host
 		if self.cur.execute(sql) > 0:
 			id_ports = self.cur.fetchall()
 			if id_ports != []: # this revision has values at the table
@@ -294,6 +294,26 @@ class Database:
 				return -1
 		else:
 			return -1
+
+	# Retrieve id of ports that are open at the db for this id_host, we said to scan them but are not scanned as ports open; get last row added
+	def retrieve_id_ports2putClosedPortOption(self, id_host, portsClosed, portsScanned):
+		# portsScanned: list
+		portsClosed = tuple(portsClosed) # necessary a tuple for the sql petition
+		if len(portsClosed)==1:
+			portsClosed = portsClosed+portsClosed    # avoid tuple to end with coma
+		portsScanned = tuple(portsScanned) # necessary a tuple for the sql petition
+		if len(portsScanned)==1:
+			portsScanned = portsScanned+portsScanned    # avoid tuple to end with coma
+		sql = "SELECT id FROM puertos WHERE puerto IN " + str(portsScanned) + " AND puerto NOT IN " + str(portsClosed) + " AND estado = 'open' AND id_hosts = '%s' AND id IN (SELECT id FROM (SELECT id, COUNT(*) AS c FROM puertos GROUP BY puerto HAVING c>=1));"  % id_host
+		if self.cur.execute(sql) > 0:
+			id_ports = self.cur.fetchall()
+			if id_ports != []: # this revision has values at the table
+				return id_ports
+			else: # at the table there are no values
+				return -1
+		else:
+			return -1
+
 
 	# Retrieve host by id
 	def retrieve_host_by_id(self, id_host):
@@ -423,7 +443,7 @@ class Database:
 		else:
 			return -1
 
-	# Get last id of a port for a host. Example: for the same host a port is first up and at the end down (different rows), with this function we only work with last sate, down in this example
+	# Get last id of a port for a host. Example: for the same host a port is first open and at the end closed (different rows), with this function we only work with last sate, closed in this example
 	def retrieve_idOfLastPort4anIdHost (self, id_host, port):
 		sql = "SELECT MAX(id) FROM puertos WHERE id_hosts='%s' AND puerto = '%s';" %(id_host, port)
 		if self.cur.execute(sql) > 0:
@@ -436,9 +456,9 @@ class Database:
 		else:
 			return -1
 
-	# Retrieve host ip whith port indicated up
+	# Retrieve host ip with port indicated open
 	def retrieve_hostIP4portID(self, id_audit, id_rev, id_port):
-		sql = "SELECT DISTINCT ip FROM hosts WHERE id IN (SELECT id_hosts FROM puertos WHERE id = '%s' AND estado = 'up') AND id_revision = (SELECT id FROM revision WHERE id = '%s' AND id_auditorias = '%s');" % (id_port, id_rev, id_audit)
+		sql = "SELECT DISTINCT ip FROM hosts WHERE id IN (SELECT id_hosts FROM puertos WHERE id = '%s' AND estado = 'open') AND id_revision = (SELECT id FROM revision WHERE id = '%s' AND id_auditorias = '%s');" % (id_port, id_rev, id_audit)
 		# distinct: avoid repeated values
 		if self.cur.execute(sql) > 0:
 			host_ip = self.cur.fetchall()
@@ -481,14 +501,14 @@ class Database:
 
 	# compare actual port values with port values at db, returns -1 if all the info is the same
 	def compare_port(self, port_db, port_info_scan):
-		if str(port_db[0][3]) == 'down' or str(port_db[0][4]) != port_info_scan: # at the db the actual up port was down or has differrent version information
+		if str(port_db[0][3]) == 'closed' or str(port_db[0][4]) != port_info_scan: # at the db the actual open port was closed or has differrent version information
 			return 1 # differences -> new line at the db for this port
 		else:
 			return -1 # no differences
 
 	# compare actual port script value with port script value at db, returns -1 if all the info is the same
 	def compare_port(self, port_db, port_script_scan):
-		if str(port_db[0][3]) == 'down' or str(port_db[0][6]) != port_script_scan: # at the db the actual up port was down or has differrent version information
+		if str(port_db[0][3]) == 'closed' or str(port_db[0][6]) != port_script_scan: # at the db the actual open port was closed or has differrent version information
 			return 1 # differences -> new line at the db for this port
 		else:
 			return -1 # no differences
