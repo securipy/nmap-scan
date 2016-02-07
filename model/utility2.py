@@ -1,8 +1,7 @@
 #!/usr/bin/python
 
-import sys,re
-from teco import color
-#from scan import
+import sys, re
+from teco import color, style
 
 class CalcIP:
 
@@ -111,20 +110,47 @@ class CalcIP:
         except:
             pass
 
-class IP2scan:
+class ChangeFormat:
 
     def __init__(self):
         self.cIP =CalcIP()
 
-    def formarRango(self, ip_primero, ip_ultimo): # ip [=] string '1.2.3.4'
+    def formatRange(self, ip_primero, ip_ultimo): # ip [=] string '1.2.3.4'
         # for ip class C
-        ip_primero_partesLista = re.compile('\.').split(ip_primero) # [1,2,3,4]
+        ip_primero_partesLista = re.compile('\.').split(ip_primero) # ['1','2','3','4']
         ip_ultimo_partesLista = re.compile('\.').split(ip_ultimo)
         ip_inicio = '%s.%s.%s.' %(ip_primero_partesLista[0],ip_primero_partesLista[1],ip_primero_partesLista[2]) # ip class C
         IP_rango = []
         for numero in range(int(ip_primero_partesLista[-1]),int(ip_ultimo_partesLista[-1])+1):
             IP_rango.append(ip_inicio+str(numero))
         return IP_rango
+
+    def formatPorts(self, ports): # converts example '1,2,4-6,7,10-12,13,15' to ['1', '2', '4', '5', '6', '7', '10', '11', '12', '13', '15']
+        portsReturn = []
+        # first take each port under comas
+        if len(re.findall(",",ports)) >= 1: # check if there are comas (,)
+            portsSeparateComa = re.compile(',').split(ports)
+            for port in portsSeparateComa:
+                # form ports indicates by hiphen
+                if len(re.findall("-",port)) >= 1: # check if ther are hiphens (-)
+                    [firstNumber,lastNumber]=re.compile('-').split(port)
+                    portsSeparateHiphen = [str(i) for i in range(int(firstNumber),int(lastNumber)+1)] # each list element is type int
+                    # portsSeparateHiphen = range(int(firstNumber),int(lastNumber)+1) # each list element is type int
+                    # [str(i) for i in portsSeparateHiphen] # each list element is type string
+                    portsReturn.extend(portsSeparateHiphen)
+                else:
+                    portsReturn.append(port)
+        # if no ports separated by comas, search ports separated by hiphens
+        elif len(re.findall("-",ports)) >= 1: # check if ther are hiphens (-)
+            [firstNumber,lastNumber]=re.compile('-').split(ports)
+            portsSeparateHiphen = [str(i) for i in range(int(firstNumber),int(lastNumber)+1)] # each list element is type int
+            # portsSeparateHiphen = range(int(firstNumber),int(lastNumber)+1) # each list element is type int
+            # [str(i) for i in portsSeparateHiphen] # each list element is type string
+            portsReturn.extend(portsSeparateHiphen)
+        # only one port introduced
+        else:
+            portsReturn.append(ports)
+        return portsReturn
 
     def IP2scan(self,introducido):
         # separadores
@@ -148,12 +174,12 @@ class IP2scan:
                     rangoIP = separar_guion.split(partes_coma[i])
                     ip_partesLista = separar_punto.split(rangoIP[0])
                     ip_primero = rangoIP[0]
-                    ip_ultimo =  '%s.%s.%s.%s' %(ip_partesLista[0],ip_partesLista[1],ip_partesLista[2], rangoIP[1])
-                    IP_rango.extend(self.formarRango(ip_primero, ip_ultimo))
+                    ip_ultimo = '%s.%s.%s.%s' %(ip_partesLista[0],ip_partesLista[1],ip_partesLista[2], rangoIP[1])
+                    IP_rango.extend(self.formatRange(ip_primero, ip_ultimo))
                 # rangos de ip indicados con barra
                 elif len(re.findall("/",partes_coma[i])): # de introducir alguna barra
                     [ipBase, ipHost1, ipHostUltimo, ipBroadcast, mask]=self.cIP.calculate_ip(partes_coma[i])
-                    IP_rango.extend(self.formarRango(ipHost1, ipHostUltimo))
+                    IP_rango.extend(self.formatRange(ipHost1, ipHostUltimo))
                 # indicar una sola direccion ip
                 else:
                     ip_partes = separar_punto.split(partes_coma[i])
@@ -168,6 +194,65 @@ class IP2scan:
                     elif len(ip_partes)==1: # if after coma is a numer, example '192.168.1.1,33', then partes_coma[i]=33
                         ip2add = '%s.%s.%s.%s' %(ip[0],ip[1],ip[2], partes_coma[i])
                         IP_rango.append(ip2add)
-            return tuple(IP_rango) # example: ['192.168.1.50', '192.168.1.51', '192.168.1.52']-> ('192.168.1.50', '192.168.1.51', '192.168.1.52')
+            return tuple(IP_rango) # example: ['192.168.1.50', '192.168.1.51', '192.168.1.52'] -> ('192.168.1.50', '192.168.1.51', '192.168.1.52')
         except:
             print color('rojo', 'Invalid syntax')
+
+    def hosts2nmapFormat (self, IPList):
+        # converts a list to the NMap required format
+        # for class C
+        # example ['192.168.1.1', '192.168.1.200', '192.168.1.33'] to '192.168.1.1,200,33'
+        separar_punto = re.compile('\.') # separador
+        ipReturn = IPList[0]
+        for ip in IPList[1:]:
+            ip_partes = separar_punto.split(ip)
+            ipReturn = '%s,%s' %(ipReturn,ip_partes[3])
+        return ipReturn
+
+    # sql queries do not accept some characters
+    def eliminateCharacters (self, string2change):
+        rmCh1 = string2change.replace("{", "")
+        rmCh2 = rmCh1.replace("}", "")
+        rmCh3 = rmCh2.replace('"', "")
+        stringFinal = rmCh3.replace("'", "")
+        return stringFinal
+
+    def convertDictionary2String(self, dictionary):
+        # save dictionary values in a list
+        list = []
+        for key, value in dictionary.iteritems():
+            value2add = '%s: %s' %(key, value)
+            list.append(value2add)
+        # convert list to string
+        str = ' \n'.join(list)
+        # eliminate characters that can produce error at a sql statement
+        str = self.eliminateCharacters(str)
+        return str
+
+    def eliminateTuplesAtList(self, listTuples):
+        # example 1, list of one tuple: [(13,)] -> 13
+        # example 2, list of tuples: [(13,), (13,), (14,)] -> [13, 13, 14]
+        if len(listTuples) == 1:
+            return listTuples[0][0]
+        else:
+            listInt = []
+            for tuple in listTuples:
+                listInt.append(tuple[0])
+            return listInt
+
+class Check:
+
+    def checkInt(self, string, message=1):
+        try:
+            int(string)
+            return 1
+        except:
+            if message == 1:
+                print 'Introduce a number'
+            return -1
+
+    def checkListEmpty (self, list):
+        if list == []:
+            return 1
+        else:
+            return -1

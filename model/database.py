@@ -2,14 +2,15 @@
 #-*-coding:utf-8-*-
 
 import sqlite3
+from utility2 import ChangeFormat
 
 class Database:
 
 	def __init__(self):
-
 		# Open the database file. If it doesn't exist, create it
 		self.con = sqlite3.connect('modules/nmap-scan/model/brain.db')
 		self.cur = self.con.cursor()
+		self.cf = ChangeFormat()
 
 	def __del__(self):
 		# Commit and close the connection
@@ -44,6 +45,15 @@ class Database:
 		sql = "SELECT * FROM auditorias WHERE id = '%s';" % id_audit
 		if self.cur.execute(sql) > 0:
 			return self.cur.fetchall()
+		else:
+			return -1
+
+	# Retrieve audit name by id, if doesn't exist, return -1
+	def retrieve_auditName(self, id_audit):
+		sql = "SELECT nombre_cliente FROM auditorias WHERE id = '%s';" % id_audit
+		if self.cur.execute(sql) > 0:
+			nombre_cliente = self.cf.eliminateTuplesAtList(self.cur.fetchall())  # example self.cur.tefchall() = [(u'exampleName',)] -> self.cur.tefchall()[0][0] = u'exampleName'
+			return nombre_cliente
 		else:
 			return -1
 
@@ -86,6 +96,15 @@ class Database:
 		else:
 			return -1
 
+	# Retrieve revision name by id, if doesn't exist, return -1
+	def retrieve_revisionName(self, id_audit, id_rev):
+		sql = "SELECT revision FROM revision WHERE id = '%s' AND id_auditorias = '%s';" % (id_rev, id_audit)
+		if self.cur.execute(sql) > 0:
+			revision = self.cf.eliminateTuplesAtList(self.cur.fetchall()) # example self.cur.tefchall() = [(u'exampleName',)] -> self.cur.tefchall()[0][0] = u'exampleName'
+			return revision
+		else:
+			return -1
+
 	# # Retrieve max revision with hosts
 	# def retrieve_revison_max(self, id_audit, id_rev):
 	# 	sql = "SELECT MAX(id_revision) FROM hosts WHERE id_revision = (SELECT id FROM revision WHERE (id_auditorias ='%s' AND id = (SELECT max(id_revision) FROM hosts)))" % id_audit # be sure the selection is in our audit
@@ -101,25 +120,25 @@ class Database:
 
 
 	# Add new host, retun the id given to the record
-	def add_host(self, state, id_rev, ip, mac):
-		sql = "INSERT INTO hosts(estado, id_revision, ip, fecha, mac) VALUES ('%s','%s','%s',CURRENT_TIMESTAMP,'%s');" % (state, id_rev, ip, mac)
+	def add_host(self, state, id_rev, ip, mac, os=None):
+		sql = "INSERT INTO hosts(OS, estado, id_revision, ip, fecha, mac) VALUES ('%s', '%s','%s','%s',CURRENT_TIMESTAMP,'%s');" % (os, state, id_rev, ip, mac)
 		self.cur.execute(sql)
 		self.con.commit()
 		return self.cur.lastrowid
 
 	# Add port
-	def add_port(self, state, id_host, port, info_version):
-		sql = "INSERT INTO puertos(id_hosts, puerto, estado, version, fecha) VALUES ('%s','%s','%s','%s',CURRENT_TIMESTAMP);" % (id_host, port, state, info_version)
+	def add_port(self, state, id_host, port, info_version, script):
+		sql = "INSERT INTO puertos(id_hosts, puerto, estado, version, fecha, scripts) VALUES ('%s','%s','%s','%s',CURRENT_TIMESTAMP,'%s');" % (id_host, port, state, info_version, script)
 		self.cur.execute(sql)
 		self.con.commit()
 		return self.cur.lastrowid
 
-	# Add port at script scan option
-	def add_port(self, state, id_host, port, script):
-		sql = "INSERT INTO puertos(id_hosts, puerto, estado, fecha, scripts) VALUES ('%s','%s','%s',CURRENT_TIMESTAMP,'%s');" % (id_host, port, state, script)
-		self.cur.execute(sql)
-		self.con.commit()
-		return self.cur.lastrowid
+	# # Add port at script scan option
+	# def add_port(self, state, id_host, port, script):
+	# 	sql = "INSERT INTO puertos(id_hosts, puerto, estado, fecha, scripts) VALUES ('%s','%s','%s',CURRENT_TIMESTAMP,'%s');" % (id_host, port, state, script)
+	# 	self.cur.execute(sql)
+	# 	self.con.commit()
+	# 	return self.cur.lastrowid
 
 	# add hosts form last revision
 	def add_old_hosts(self, id_audit, id_rev): # id_rev[=]str
@@ -152,7 +171,8 @@ class Database:
 		if self.cur.execute(sql) > 0:
 			last_revisionID = self.cur.fetchall()
 			if last_revisionID != [(None,)]:
-				return last_revisionID[0][0] # example [(1,)]
+				last_revisionID = self.cf.eliminateTuplesAtList(last_revisionID) # example [(1,)] -> 1
+				return last_revisionID
 			else:
 				return -1
 		else:
@@ -163,34 +183,35 @@ class Database:
 		sql = "SELECT MAX(id) FROM hosts WHERE id_revision = (SELECT id FROM revision WHERE id = '%s' AND id_auditorias = '%s');" % (id_rev, id_audit)
 		if self.cur.execute(sql) > 0:
 			id_results = self.cur.fetchall()
-			if str(id_results) == '[(None,)]': # at the table there is not values for this revision
+			if id_results == [(None,)]: # at the table there is not values for this revision
 				return -1
 			else: # this revision has values at the table
 				return 1
 		else:
 			return -1
 
-	# check if an ip was scanned with discovery option
-	def check_ipInTableHosts(self, id_audit, id_rev, ip): # id_rev is unique (primary key)
-		# if len(ip)==1:
-		# 	ip = ip+ip    # avoid tuple to end with coma
-		# sql = "SELECT MAX(id) FROM hosts WHERE ip IN " + str(ip) +" AND id_revision = (SELECT id FROM revision WHERE id = '%s' AND id_auditorias = '%s');" % (id_rev, id_audit)
-		sql = "SELECT MAX(id) FROM hosts WHERE ip = '%s' AND id_revision = (SELECT id FROM revision WHERE id = '%s' AND id_auditorias = '%s');" % (ip, id_rev, id_audit)
-		if self.cur.execute(sql) > 0:
-			exists = self.cur.fetchall()
-			if str(exists) == '[(None,)]': # table hosts has not those ip
-				return -1
-			else: # ip at hosts table
-				return 1
-		else:
-			return -1
+	# # check if an ip was scanned with discovery option
+	# # ip: tuple
+	# def check_ipInTableHosts(self, id_audit, id_rev, ip): # id_rev is unique (primary key)
+	# 	# if len(ip)==1:
+	# 	# 	ip = ip+ip    # avoid tuple to end with coma
+	# 	# sql = "SELECT MAX(id) FROM hosts WHERE ip IN " + str(ip) +" AND id_revision = (SELECT id FROM revision WHERE id = '%s' AND id_auditorias = '%s');" % (id_rev, id_audit)
+	# 	sql = "SELECT MAX(id) FROM hosts WHERE ip = '%s' AND id_revision = (SELECT id FROM revision WHERE id = '%s' AND id_auditorias = '%s');" % (ip, id_rev, id_audit)
+	# 	if self.cur.execute(sql) > 0:
+	# 		exists = self.cur.fetchall()
+	# 		if exists == [(None,)]: # (verify) table hosts has not those ip
+	# 			return -1
+	# 		else: # ip at hosts table
+	# 			return 1
+	# 	else:
+	# 		return -1
 
 	# # check if there are values at a puertos table for this revision
 	# def check_tablePuertosValues4ThisRevision(self, id_audit, id_rev): # id_rev is unique (primary key)
 	# 	sql = "SELECT MAX(id) FROM puertos WHERE id_hosts IN (SELECT id FROM hosts WHERE id_revision = (SELECT id FROM revision WHERE id = '%s' AND id_auditorias = '%s'));" % (id_rev, id_audit)
 	# 	if self.cur.execute(sql) > 0:
 	# 		id_results = self.cur.fetchall()
-	# 		if str(id_results) == '[(None,)]': # at the table there is not values for this revision
+	# 		if id_results == [(None,)]: # at the table there is not values for this revision
 	# 			return -1
 	# 		else: # this revision has values at the table
 	# 			return 1
@@ -202,10 +223,22 @@ class Database:
 		sql = "SELECT MAX(id) FROM puertos WHERE id_hosts = '%s';" % id_host
 		if self.cur.execute(sql) > 0:
 			id_results = self.cur.fetchall()
-			if str(id_results) == '[(None,)]': # at the table puertos there is not values for this id host
+			if id_results == [(None,)]: # at the table puertos there is not values for this id host
 				return -1
 			else: # this id host has values at the table puertos
 				return 1
+		else:
+			return -1
+
+	# check if a port is at db for this revision by retrieving id
+	def check_portAtDB(self, id_audit, id_rev, port):
+		sql = "SELECT id FROM puertos WHERE puerto = '%s' AND id_hosts IN (SELECT id FROM hosts WHERE id_revision = (SELECT id FROM revision WHERE id = '%s' AND id_auditorias = '%s'));" % (port, id_rev, id_audit)
+		if self.cur.execute(sql) > 0:
+			id = self.cur.fetchall()
+			if id != []:
+				return 1
+			else:
+				return -1
 		else:
 			return -1
 
@@ -223,36 +256,42 @@ class Database:
 	# 		return -1
 
 
-	# Retrieve hosts that were up and now are down
-	def retrieve_id_hosts2putDown(self, id_audit, id_rev, macs, ip2scan): # mac: macs of actual up hosts
-		macs = tuple(macs) # necessary for the sql petition
-		if len(macs)==1:
-			macs = macs+macs    # avoid tuple to end with coma
-		if len(ip2scan)==1:
-			ip2scan = ip2scan+ip2scan
-		# takes max id of the hosts with same mac (mac different than macs introduced) that are up at the db for this revision
-		sql="SELECT id FROM hosts WHERE ip IN " + str(ip2scan) + " AND mac NOT IN " + str(macs) + "AND estado = 'up' AND id_revision = (SELECT id FROM revision WHERE id = '%s' AND id_auditorias = '%s') AND id IN (SELECT id FROM (SELECT id, COUNT(*) AS c FROM hosts GROUP BY mac HAVING c>=1));"  % (id_rev, id_audit)
+	# Retrieve hosts (mac) that were up but now are down and it's IP was scanned
+	def retrieve_id_hosts2putDown(self, id_audit, id_rev, macsUp, hostsIPup, hosts2scan): # mac: macsUp of actual up hosts
+		# macsUp: list
+		# hosts2scan: tuple
+		# hostsIPup: list
+		macsUp = tuple(macsUp) # necessary for the sql petition
+		hostsIPup = tuple(hostsIPup) # necessary for the sql petition
+		if len(macsUp) == 1:
+			macsUp = macsUp+macsUp # avoid tuple to end with coma
+		if len(hosts2scan) == 1:
+			hosts2scan = hosts2scan+hosts2scan
+		if len(hostsIPup) == 1:
+			hostsIPup = hostsIPup+hostsIPup
+		# takes max id of the hosts with same mac (mac different than macsUp introduced) that are up at the db for this revision
+		sql="SELECT id FROM hosts WHERE ip IN " + str(hosts2scan) + " AND (ip NOT in " + str(hostsIPup) + " OR mac NOT IN " + str(macsUp) + ") AND estado = 'up' AND id_revision = (SELECT id FROM revision WHERE id = '%s' AND id_auditorias = '%s') AND (id IN (SELECT id FROM (SELECT id, COUNT(*) AS c FROM hosts GROUP BY mac HAVING c>=1)) OR id IN (SELECT id FROM (SELECT id, COUNT(*) AS c FROM hosts GROUP BY ip HAVING c>=1)) );"  % (id_rev, id_audit) # COUNT... -> not add again a row as down if the last state is down
 		if self.cur.execute(sql) > 0:
 			id_hosts = self.cur.fetchall()
-			if str(id_hosts) == '[(None,)]': # at the table there are no values
+			if id_hosts == []: # at the table there are no values
 				return -1
 			else: # this revision has values at the table
 				return id_hosts # return self.cur.fetchall() returns []
 		else:
 			return -1
 
-	# Retrieve id of ports that are up at the db for this host(used host id); get last row added
+	# Retrieve id of ports that are up at the db for this id_host but are not scanned as ports up; get last row added
 	def retrieve_id_ports2putDown(self, id_host, portsUp):
 		portsUp = tuple(portsUp) # necessary for the sql petition
 		if len(portsUp)==1:
 			portsUp = portsUp+portsUp    # avoid tuple to end with coma
-		sql = "SELECT id FROM puertos WHERE puerto NOT IN " + str(portsUp) + "AND estado = 'up' AND id_hosts = '%s' AND id IN (SELECT id FROM (SELECT id, COUNT(*) AS c FROM puertos GROUP BY puerto HAVING c>=1));"  % id_host
+		sql = "SELECT id FROM puertos WHERE puerto NOT IN " + str(portsUp) + " AND estado = 'up' AND id_hosts = '%s' AND id IN (SELECT id FROM (SELECT id, COUNT(*) AS c FROM puertos GROUP BY puerto HAVING c>=1));"  % id_host
 		if self.cur.execute(sql) > 0:
 			id_ports = self.cur.fetchall()
-			if str(id_ports) == '[(None,)]': # at the table there are no values
-				return -1
-			else: # this revision has values at the table
+			if id_ports != []: # this revision has values at the table
 				return id_ports
+			else: # at the table there are no values
+				return -1
 		else:
 			return -1
 
@@ -261,7 +300,26 @@ class Database:
 		sql = "SELECT * FROM hosts WHERE id = '%s';" % id_host
 		if self.cur.execute(sql) > 0:
 			row_db = self.cur.fetchall()
-			return row_db    # return self.cur.fetchall() returns []
+			if row_db != []:
+				return row_db    # return self.cur.fetchall() returns []
+			else:
+				return -1
+		else:
+			return -1
+
+	# Retrieve hosts ip of the indicated revision
+	def retrieve_hosts_ip_by_revision(self, id_audit, id_rev):
+		# use all hosts scanned, if now are down too in order to use all the information saved
+		sql = "SELECT DISTINCT ip FROM hosts WHERE id_revision = (SELECT id FROM revision WHERE id = '%s' AND id_auditorias = '%s');" % (id_rev, id_audit)
+		# distinct: avoid repeated ip
+		if self.cur.execute(sql) > 0:
+			hosts = self.cur.fetchall()
+			if hosts != []:
+				for i in range(len(hosts)): # example: hosts=[(u'192.168.1.1',), (u'192.168.1.200',), (u'192.168.1.33',)]
+					hosts[i] = str(hosts[i][0])
+				return hosts  # type list # return self.cur.fetchall() returns []
+			else:
+				return -1
 		else:
 			return -1
 
@@ -270,17 +328,8 @@ class Database:
 		sql = "SELECT * FROM puertos WHERE id = '%s';" % id_port
 		if self.cur.execute(sql) > 0:
 			row_db = self.cur.fetchall()
-			return row_db    # return self.cur.fetchall() returns []
-		else:
-			return -1
-
-	# Retrieve hosts by ip (one or more)
-	def retrieve_mac(self, id_rev, host):
-		sql = "SELECT mac FROM hosts WHERE ip IN " + str(host) + "AND id_revision = '%s';" % id_rev
-		if self.cur.execute(sql) > 0:
-			mac = self.cur.fetchall()
-			if str(mac)!='[(None,)]':
-				return mac    # return self.cur.fetchall() returns []
+			if row_db != []:
+				return row_db    # return self.cur.fetchall() returns []
 			else:
 				return -1
 		else:
@@ -303,7 +352,7 @@ class Database:
 	# 	sql = "SELECT id FROM hosts WHERE id = (SELECT MAX(id) FROM hosts WHERE (mac = '%s' AND id_revision = (SELECT id FROM revision WHERE id = '%s' AND id_auditorias = '%s')));" % (mac, id_rev, id_audit)
 	# 	if self.cur.execute(sql) > 0:
 	# 		id = self.cur.fetchall()
-	# 		if id != '[(None,)]':
+	# 		if id != [(None,)]:
 	# 			return id
 	# 		else:
 	# 			return -1
@@ -315,8 +364,9 @@ class Database:
 		sql = "SELECT MAX(id) FROM hosts WHERE (id < '%s' AND mac = '%s' AND id_revision IN (SELECT id FROM revision WHERE id_auditorias = '%s'));" % (actualID, mac, id_audit)
 		if self.cur.execute(sql) > 0:
 			previousID = self.cur.fetchall()
-			if str(previousID) != '[(None,)]':
-				return previousID[0][0]  # example:[(7,)]
+			if previousID != [(None,)]:
+				previousID = self.cf.eliminateTuplesAtList(previousID) # example:[(7,)] -> 7
+				return previousID
 			else:
 				return -1
 		else:
@@ -327,8 +377,9 @@ class Database:
 		sql = "SELECT MAX(id) FROM hosts WHERE mac = '%s' and id_revision = (SELECT id FROM revision WHERE id = '%s' AND id_auditorias = '%s');" % (mac, id_rev, id_audit)
 		if self.cur.execute(sql) > 0:
 			host_id = self.cur.fetchall()
-			if str(host_id) != '[(None,)]':
-				return host_id[0][0]# example: id_hostWithPorts = [(20,)]
+			if host_id != [(None,)]:
+				host_id = self.cf.eliminateTuplesAtList(host_id) # example: id_hostWithPorts = [(20,)] -> 20
+				return host_id
 			else:
 				return -1
 		else:
@@ -351,8 +402,49 @@ class Database:
 		sql = "SELECT puerto FROM puertos WHERE id_hosts = '%s';" % id_host
 		if self.cur.execute(sql) > 0:
 			puerto = self.cur.fetchall()
-			if str(puerto) != '[(None,)]':
+			if puerto != []:
 				return puerto
+			else:
+				return -1
+		else:
+			return -1
+
+	# retrieve id of the hosts with the port indicated. Hosts have to be up
+	def retrieve_idOfHostsUpWithAPort (self, port):
+		sql = "SELECT id FROM hosts WHERE estado = 'up' AND id IN (SELECT DISTINCT id_hosts FROM puertos WHERE puerto = '%s');" %port
+		# distinct: avoid repeated values
+		if self.cur.execute(sql) > 0:
+			id_hosts = self.cur.fetchall() # lists of tuples, exaple: [(13,), (14,)]
+			if id_hosts != []:
+				id_hosts = self.cf.eliminateTuplesAtList(id_hosts) # example [13, 14]
+				return id_hosts
+			else:
+				return -1
+		else:
+			return -1
+
+	# Get last id of a port for a host. Example: for the same host a port is first up and at the end down (different rows), with this function we only work with last sate, down in this example
+	def retrieve_idOfLastPort4anIdHost (self, id_host, port):
+		sql = "SELECT MAX(id) FROM puertos WHERE id_hosts='%s' AND puerto = '%s';" %(id_host, port)
+		if self.cur.execute(sql) > 0:
+			id_port = self.cur.fetchall() # lists of one tuple, example: [(18,)]
+			if id_port != [(None,)]:
+				id_port = self.cf.eliminateTuplesAtList(id_port) # int, example: 18
+				return id_port
+			else:
+				return -1
+		else:
+			return -1
+
+	# Retrieve host ip whith port indicated up
+	def retrieve_hostIP4portID(self, id_audit, id_rev, id_port):
+		sql = "SELECT DISTINCT ip FROM hosts WHERE id IN (SELECT id_hosts FROM puertos WHERE id = '%s' AND estado = 'up') AND id_revision = (SELECT id FROM revision WHERE id = '%s' AND id_auditorias = '%s');" % (id_port, id_rev, id_audit)
+		# distinct: avoid repeated values
+		if self.cur.execute(sql) > 0:
+			host_ip = self.cur.fetchall()
+			if host_ip != []:
+				host_ip = self.cf.eliminateTuplesAtList(host_ip) # example: [(u'192.168.1.5',)] -> u'192.168.1.5'
+				return host_ip
 			else:
 				return -1
 		else:

@@ -43,11 +43,13 @@ class add(object):
 			print color('magenta', '1. Select audit')
 			print color('magenta', '2. Select revision')
 			print color('magenta', '3. Discovery')
-			print color('magenta', '4. Versiones')
-			print color('magenta', '5. Script')
-			print color('magenta', '6. Custom Parameters')
-			print color('magenta', '7. Puertos')
-			print color('magenta', '8. What is my base IP')
+			print color('magenta', '4. Discover OS')
+			print color('magenta', '5. Versiones')
+			print color('magenta', '6. Script')
+			print color('magenta', '7. Custom Parameters')
+			print color('magenta', '8. Ports')
+			print color('magenta', '9. Generate file ports')
+			print color('magenta', '10. What is my base IP')
 			print color('rojo', '0. Exit')
 		
 		__menu__()
@@ -63,17 +65,21 @@ class add(object):
 			elif sentencia == '3':
 				scan.discovery()
 			elif sentencia == '4':
+				scan.discoverOS()
+			elif sentencia == '5':
 				# scan.version(_, log) #M
 				scan.version()
-			elif sentencia == '5':
+			elif sentencia == '6':
 				# scan.script(_, log) #M
 				scan.script()
-			elif sentencia == '6':
-				scan.CustomParameters(_, log)
 			elif sentencia == '7':
+				scan.CustomParameters()
+			elif sentencia == '8':
 				# scan.puertos(_, log)
 				scan.puertos()
-			elif sentencia == '8':
+			elif sentencia == '9':
+				scan.portsFile()
+			elif sentencia == '10':
 				scan.calcIPbase()
 			elif sentencia == '0':
 				sys.exit()
