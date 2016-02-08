@@ -81,8 +81,8 @@ class Database:
 			return -1
 
 	# Retrieve revision by audit name
-	def retrieve_revison_name(self, rev_name):
-		sql = "SELECT * FROM revision WHERE revision = '%s';" % rev_name
+	def retrieve_revison_name(self, rev_name, id_audit):
+		sql = "SELECT * FROM revision WHERE revision = '%s' AND id_auditorias = '%s';" % (rev_name, id_audit)
 		if self.cur.execute(sql) > 0:
 			return self.cur.fetchall()
 		else:

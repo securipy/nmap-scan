@@ -76,9 +76,12 @@ class Scan:
 			new_rev = raw_input('Name revision: ')
 			while new_rev == "":
 				new_rev = raw_input('Name revision: ')
-			if len(self.db.retrieve_revison_name(new_rev)) == 0:
+			if len(self.db.retrieve_revison_name(new_rev, self.num_audit)) == 0:
 				self.num_rev = self.db.add_revision(int(self.num_audit), new_rev)
 				self.nom_rev = new_rev
+			else:
+				print color('rojo', '\nRepeated name\n')
+				self.select_revision()
 		elif rev_action == '2':
 			# Select existing revision
 			all_revs = self.db.retrieve_revison_id(self.num_audit)
@@ -157,7 +160,20 @@ class Scan:
 			self.__actualiceTablePuertosAndHosts()
 
 	def CustomParameters(self):
-		print 'Coming soon'
+	# introduce custom parameters
+		# check if a revision and audit were selected
+		self.__check_audit_rev()
+		# add last revison hosts (once per revision)
+		self.__addLastRevisionHosts()
+		# ask for ip to scan
+		hosts2scan = self.__ask4hosts2scanOptions()[0]
+		# ask for parameters of the scan
+		parameters = self.__ask4parameters()
+		if hosts2scan != -1:
+			# scan
+			self.__scanCustomParameters(hosts2scan, parameters)
+			# add hosts and ports to their tables
+			self.__actualiceTablePuertosAndHosts()
 
 	def puertos(self):
 	# introduce hosts ip and ports to scan and check if ports are open or closed, not more information is saved
@@ -230,6 +246,11 @@ class Scan:
 			print "Error selecting ip"
 		return [hosts2scan_shortFormat, hosts2scan_longFormat] # -hosts2scan_shortFormat example: '192.168.1.1,2' -hosts2scan_longFormat example ('192.168.1.1','192.168.1.2')
 
+	def __ask4parameters(self):
+		parameters=""
+		while parameters == "":
+			parameters = raw_input('Type parameters for the scan: ')
+		return parameters
 
 	# add last revison's hosts if this is the first discovery for actual revision
 	def __addLastRevisionHosts(self):
@@ -251,6 +272,11 @@ class Scan:
 	def __scanScript(self, hosts2scan):
 		print 'Port scan started'
 		self.nm.scan(hosts=hosts2scan, arguments="-sV -sC")
+
+	# scan for CustomParameters option
+	def __scanCustomParameters(self, hosts2scan, parameters):
+		print 'Scan started'
+		self.nm.scan(hosts=hosts2scan, arguments=parameters)
 
 	# scan for Ports option
 	def __scanPorts(self, hosts2scan, ports2scan):
