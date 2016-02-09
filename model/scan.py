@@ -33,6 +33,7 @@ class Scan:
 		self.save_path = 'modules/nmap-scan/model/ports' # save .txt files
 
 	def select_audit(self):
+		auditNotAtDB = 0
 		audit_action = raw_input(color('cyan', '1. New audit\n2. Existing audit\n')+'Select option: ')
 		while audit_action == "":
 			audit_action = raw_input(color('cyan', '1. New audit\n2. Existing audit\n')+'Select option: ')
@@ -51,15 +52,23 @@ class Scan:
 			if len(all_audits) == 0:
 				print color("rojo", "\nNo existing audits\n")
 				self.select_audit()
-			for num,audit in all_audits:
-				print color('verde' , str(num)+". "+audit )
-			number_audit = raw_input('Number audit: ')
-			while number_audit == "":
+			else:
+				for num,audit in all_audits:
+					print color('verde' , str(num)+". "+audit )
 				number_audit = raw_input('Number audit: ')
-			self.num_audit = number_audit
-			all_audits = dict((x,y) for x, y in all_audits)
-			self.nom_audit = all_audits[int(number_audit)]
-			self.select_revision()
+				while number_audit == "":
+					number_audit = raw_input('Number audit: ')
+				self.num_audit = number_audit
+				all_audits = dict((x,y) for x, y in all_audits)
+				try:
+					self.nom_audit = all_audits[int(number_audit)]
+				except:
+					print color('rojo', '\nAudit does not exist\n')
+					auditNotAtDB = 1
+				if auditNotAtDB != 1:
+					self.select_revision()
+				else:
+					self.select_audit()
 		else:
 			print color('rojo', '\nInvalid option\n')
 			self.select_audit()
@@ -68,36 +77,43 @@ class Scan:
 		if self.num_audit == None and self.nom_audit == None:
 			print "Select audit before revison"
 			self.select_audit()
-		rev_action = raw_input(color('cyan', '1. New revision\n2. Existing revision\n')+'Select option: ')
-		while rev_action == "":
+		else: # neccesary to solve issue 1 (view Issues at github.com)
 			rev_action = raw_input(color('cyan', '1. New revision\n2. Existing revision\n')+'Select option: ')
-		if rev_action == '1':
-			# Add new revision
-			new_rev = raw_input('Name revision: ')
-			while new_rev == "":
+			while rev_action == "":
+				rev_action = raw_input(color('cyan', '1. New revision\n2. Existing revision\n')+'Select option: ')
+			if rev_action == '1':
+				# Add new revision
 				new_rev = raw_input('Name revision: ')
-			if len(self.db.retrieve_revison_name(new_rev, self.num_audit)) == 0:
-				self.num_rev = self.db.add_revision(int(self.num_audit), new_rev)
-				self.nom_rev = new_rev
+				while new_rev == "":
+					new_rev = raw_input('Name revision: ')
+				if len(self.db.retrieve_revison_name(new_rev, self.num_audit)) == 0:
+					self.num_rev = self.db.add_revision(int(self.num_audit), new_rev)
+					self.nom_rev = new_rev
+				else:
+					print color('rojo', '\nRepeated name\n')
+					self.select_revision()
+			elif rev_action == '2':
+				# Select existing revision
+				all_revs = self.db.retrieve_revison_id(self.num_audit)
+				if len(all_revs) == 0:
+					print color("rojo", "\nNo existing revisions\n")
+					print "Create a revision for this audit"
+					self.select_revision()
+				else:
+					for fecha, num, id_audit, rev in all_revs:
+						print color('verde' , str(num)+". "+rev+" ("+str(fecha)+")")
+					number_rev = raw_input('Number revision: ')
+					while number_rev == "":
+						number_rev = raw_input('Number revision: ')
+					self.num_rev = number_rev
+					all_revs = dict((y,z) for x,y, w, z in all_revs)
+					try:
+						self.nom_rev = all_revs[int(number_rev)]
+					except:
+						print color('rojo', '\nRevision not at this audit\n')
 			else:
-				print color('rojo', '\nRepeated name\n')
+				print color('rojo', '\nInvalid option\n')
 				self.select_revision()
-		elif rev_action == '2':
-			# Select existing revision
-			all_revs = self.db.retrieve_revison_id(self.num_audit)
-			if len(all_revs) == 0:
-				print color("rojo", "\nNo existing revisions\n")
-			for fecha, num, id_audit, rev in all_revs:
-				print color('verde' , str(num)+". "+rev+" ("+str(fecha)+")")
-			number_rev = raw_input('Number revision: ')
-			while number_rev == "":
-				number_rev = raw_input('Number revision: ')
-			self.num_rev = number_rev
-			all_revs = dict((y,z) for x,y, w, z in all_revs)
-			self.nom_rev = all_revs[int(number_rev)]
-		else:
-			print color('rojo', '\nInvalid option\n')
-			self.select_revision()
 
 	def discovery(self):
 		# check if a revision and audit were selected
@@ -160,20 +176,21 @@ class Scan:
 			self.__actualiceTablePuertosAndHosts()
 
 	def CustomParameters(self):
-	# introduce custom parameters
-		# check if a revision and audit were selected
-		self.__check_audit_rev()
-		# add last revison hosts (once per revision)
-		self.__addLastRevisionHosts()
-		# ask for ip to scan
-		hosts2scan = self.__ask4hosts2scanOptions()[0]
-		# ask for parameters of the scan
-		parameters = self.__ask4parameters()
-		if hosts2scan != -1:
-			# scan
-			self.__scanCustomParameters(hosts2scan, parameters)
-			# add hosts and ports to their tables
-			self.__actualiceTablePuertosAndHosts()
+		print 'Coming soon'
+	# # introduce custom parameters
+	# 	# check if a revision and audit were selected
+	# 	self.__check_audit_rev()
+	# 	# add last revison hosts (once per revision)
+	# 	self.__addLastRevisionHosts()
+	# 	# ask for ip to scan
+	# 	hosts2scan = self.__ask4hosts2scanOptions()[0]
+	# 	# ask for parameters of the scan
+	# 	parameters = self.__ask4parameters()
+	# 	if hosts2scan != -1:
+	# 		# scan
+	# 		self.__scanCustomParameters(hosts2scan, parameters)
+	# 		# add hosts and ports to their tables
+	# 		self.__actualiceTablePuertosAndHosts()
 
 	def puertos(self):
 	# introduce hosts ip and ports to scan and check if ports are open or closed, not more information is saved
