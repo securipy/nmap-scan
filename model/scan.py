@@ -46,9 +46,6 @@ class Scan:
 				self.num_audit = self.db.add_audit(new_audit)
 				self.nom_audit = new_audit
 				self.select_revision()
-			else:
-				print color('rojo', '\nRepeated name\n')
-				self.select_audit()
 		elif audit_action == '2':
 			# Select existing audit
 			all_audits = self.db.retrieve_audits()
