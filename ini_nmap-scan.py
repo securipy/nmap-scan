@@ -44,7 +44,7 @@ class add(object):
 			print color('magenta', '2. Select revision')
 			print color('magenta', '3. Discovery')
 			print color('magenta', '4. Discover OS')
-			print color('magenta', '5. Versiones')
+			print color('magenta', '5. Versions')
 			print color('magenta', '6. Script')
 			print color('magenta', '7. Custom Parameters')
 			print color('magenta', '8. Ports')

@@ -144,7 +144,7 @@ class Database:
 	def add_old_hosts(self, id_audit, id_rev): # id_rev[=]str
 		last_revision = self.retrieve_last_revision4thisAudit(id_audit, id_rev)
 		if int(last_revision) >= 1: # first revision has id 1 (before this, no revision with values)
-			sql = "INSERT INTO hosts (estado, id_revision, ip, fecha, mac) SELECT estado, '%s', ip, fecha, mac FROM hosts WHERE id_revision = (SELECT id FROM revision WHERE id = '%s' AND id_auditorias = '%s');" % (id_rev, last_revision, id_audit) # neccesary compare audit in order not to get values of another audit
+			sql = "INSERT INTO hosts (estado, id_revision, ip, fecha, mac) SELECT estado, '%s', ip, fecha, mac FROM hosts WHERE id_revision = (SELECT id FROM revision WHERE id = '%s' AND id_auditorias = '%s');" % (id_rev, last_revision, id_audit) # necessary compare audit in order not to get values of another audit
 			self.cur.execute(sql)
 			self.con.commit()
 			return self.cur.lastrowid
@@ -153,7 +153,7 @@ class Database:
 	# def add_old_ports(self, id_audit, id_rev): # id_rev[=]str
 	# 	last_revision = self.retrieve_last_revision4thisAudit(id_audit, id_rev)
 	# 	if int(last_revision) >= 1: # first revision has id 1 (before this, no revision with values)
-	# 		sql = "INSERT INTO puertos(id_hosts, puerto, estado, version, fecha) SELECT id_hosts, puerto, estado, version, fecha FROM puertos WHERE id_hosts IN (SELECT id FROM hosts WHERE id_revision = (SELECT id FROM revision WHERE id = '%s' AND id_auditorias = '%s'));" % (last_revision, id_audit) # neccesary compare audit in order not to get values of another audit
+	# 		sql = "INSERT INTO puertos(id_hosts, puerto, estado, version, fecha) SELECT id_hosts, puerto, estado, version, fecha FROM puertos WHERE id_hosts IN (SELECT id FROM hosts WHERE id_revision = (SELECT id FROM revision WHERE id = '%s' AND id_auditorias = '%s'));" % (last_revision, id_audit) # necessary compare audit in order not to get values of another audit
 	# 		self.cur.execute(sql)
 	# 		self.con.commit()
 	# 		return self.cur.lastrowid
@@ -494,7 +494,7 @@ class Database:
 		elif str(host_db[0][4]) != host_scan[0][1]:
 			difference = 1
 		# mac
-		# not neccesary because host_db was search using host_scan's mac
+		# not necessary because host_db was search using host_scan's mac
 		elif str(host_db[0][6]) != host_scan[0][2]:
 			difference = 1
 		return difference

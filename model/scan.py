@@ -10,7 +10,7 @@ __maintainer__ 	= "GoldraK & Roger Serentill & Carlos A. Molina"
 __email__ 		= "goldrak@gmail.com, hello@rogerserentill.com, carlosantmolina@gmail.com"
 __status__ 		= "Development"
 
-import sys, nmap, time, os.path
+import sys, nmap, time, os.path, socket
 sys.path.append('model')
 from database import Database
 from nmapscan import NmapScan
@@ -31,6 +31,7 @@ class Scan:
 		self.cf = ChangeFormat()
 		self.ck = Check()
 		self.save_path = 'modules/nmap-scan/model/ports' # save .txt files
+		self.myIP = socket.gethostbyname(socket.gethostname()) # avoid save information of our own host
 
 	def select_audit(self):
 		auditNotAtDB = 0
@@ -46,6 +47,9 @@ class Scan:
 				self.num_audit = self.db.add_audit(new_audit)
 				self.nom_audit = new_audit
 				self.select_revision()
+			else:
+				print color('rojo', '\nRepeated name\n')
+				self.select_audit()
 		elif audit_action == '2':
 			# Select existing audit
 			all_audits = self.db.retrieve_audits()
@@ -77,7 +81,7 @@ class Scan:
 		if self.num_audit == None and self.nom_audit == None:
 			print "Select audit before revison"
 			self.select_audit()
-		else: # neccesary to solve issue 1 (view Issues at github.com)
+		else: # necessary to solve issue 1 (view Issues at github.com)
 			rev_action = raw_input(color('cyan', '1. New revision\n2. Existing revision\n')+'Select option: ')
 			while rev_action == "":
 				rev_action = raw_input(color('cyan', '1. New revision\n2. Existing revision\n')+'Select option: ')
@@ -121,14 +125,14 @@ class Scan:
 		# add last revison hosts (once per revision)
 		self.__addLastRevisionHosts()
 		# ask for ip to scan
-		hosts2scan = self.__ask4hosts2scan()
+		hosts2scan_shortFormat = self.__ask4hosts2scan()
 		# save complete hosts ip to scan
-		hosts2scan_longFormat=self.cf.IP2scan(hosts2scan) # example hosts2scan_longFormat=('192.168.1.50', '192.168.1.51', '192.168.1.52')
+		hosts2scan_longFormat=tuple(self.cf.hosts2completeFormat(hosts2scan_shortFormat)) # example hosts2scan_longFormat=('192.168.1.50', '192.168.1.51', '192.168.1.52')
 		if hosts2scan_longFormat != -1:
 			# scan
-			self.nm.scan(hosts=hosts2scan, arguments='-n -sP')
+			self.__scanDiscovery(hosts2scan_shortFormat)
 			# show ip of hosts up
-			print 'hosts up: '+str(self.nm.all_hosts())
+			self.__printHostsScanned(1)
 			# actualice hosts table
 			self.__actualiceTableHosts(hosts2scan_longFormat)
 
@@ -143,8 +147,8 @@ class Scan:
 		if hosts2scan_shortFormat != -1 and hosts2scan_longFormat != -1:
 			# scan
 			self.__scanDiscoverOS(hosts2scan_shortFormat)
-			# show ip of hosts up
-			print 'hosts up: '+str(self.nm.all_hosts())
+			# show ip of hosts scanned
+			self.__printHostsScanned()
 			# add hosts and ports to their tables
 			self.__actualiceTableHosts(hosts2scan_longFormat)
 		# ejm movil, guardar: 'osclass': {'vendor': 'Apple', 'osfamily': 'iOS', 'type': 'phone', 'osgen': '6.X', 'accuracy': '100'}
@@ -177,20 +181,21 @@ class Scan:
 
 	def CustomParameters(self):
 		print 'Coming soon'
-	# # introduce custom parameters
-	# 	# check if a revision and audit were selected
-	# 	self.__check_audit_rev()
-	# 	# add last revison hosts (once per revision)
-	# 	self.__addLastRevisionHosts()
-	# 	# ask for ip to scan
-	# 	hosts2scan = self.__ask4hosts2scanOptions()[0]
-	# 	# ask for parameters of the scan
-	# 	parameters = self.__ask4parameters()
-	# 	if hosts2scan != -1:
-	# 		# scan
-	# 		self.__scanCustomParameters(hosts2scan, parameters)
-	# 		# add hosts and ports to their tables
-	# 		self.__actualiceTablePuertosAndHosts()
+		# # introduce custom parameters
+		# # check if a revision and audit were selected
+		# self.__check_audit_rev()
+		# # add last revison hosts (once per revision)
+		# self.__addLastRevisionHosts()
+		# # ask for ip to scan
+		# hosts2scan = self.__ask4hosts2scanOptions()[0]
+		# if hosts2scan != -1:
+		# 	# ask for parameters of the scan
+		# 	parameters = self.__ask4parameters()
+		# 	if hosts2scan != -1:
+		# 		# scan
+		# 		self.__scanCustomParameters(hosts2scan, parameters)
+		# 		# add hosts and ports to their tables
+		# 		self.__actualiceTablePuertosAndHosts()
 
 	def puertos(self):
 	# introduce hosts ip and ports to scan and check if ports are open or closed, not more information is saved
@@ -227,12 +232,6 @@ class Scan:
 			print color('bcyan', "Select revision")
 			self.select_revision()
 
-	def __ask4hosts2scan(self):
-		hosts2scan=""
-		while hosts2scan == "":
-			hosts2scan = raw_input('Type an IP or range (no spaces): ')
-		return hosts2scan
-
 	def __ask4hosts2scanOptions(self): #__ -> class private method
 		# get ip to scan
 		option2scan = 0
@@ -247,7 +246,7 @@ class Scan:
 			discoveryDone = self.db.check_tableHostsValues4ThisRevision(self.num_audit, self.num_rev) # check values at hosts table for this revision
 			if discoveryDone == 1:
 				hosts2scan_longFormat = self.db.retrieve_hosts_ip_by_revision(self.num_audit, self.num_rev)
-				hosts2scan_longFormat = tuple(hosts2scan_longFormat)
+				hosts2scan_longFormat = tuple(self.cf.eliminateMyIPInAList(hosts2scan_longFormat, self.myIP)) # tuple for SQL queries
 				hosts2scan_shortFormat = self.cf.hosts2nmapFormat(hosts2scan_longFormat)
 				print "Hosts to scan: " + str(hosts2scan_shortFormat)
 				IPdiscovered=1
@@ -258,10 +257,21 @@ class Scan:
 				IPdiscovered = -1
 		elif option2scan == 2:
 			hosts2scan_shortFormat = self.__ask4hosts2scan()
-			hosts2scan_longFormat = self.cf.IP2scan(hosts2scan_shortFormat)
+			hosts2scan_longFormat = self.cf.hosts2completeFormat(hosts2scan_shortFormat) # return list
+			hosts2scan_longFormat = tuple(self.cf.eliminateMyIPInAList(hosts2scan_longFormat, self.myIP)) # tuple for SQL queries
+			hosts2scan_shortFormat = self.cf.hosts2nmapFormat(hosts2scan_longFormat)
 		if hosts2scan_shortFormat == -1 and IPdiscovered != -1:
 			print "Error selecting ip"
 		return [hosts2scan_shortFormat, hosts2scan_longFormat] # -hosts2scan_shortFormat example: '192.168.1.1,2' -hosts2scan_longFormat example ('192.168.1.1','192.168.1.2')
+
+	def __ask4hosts2scan(self):
+		hosts2scan_shortFormat=""
+		while hosts2scan_shortFormat == "":
+			hosts2scan_shortFormat = raw_input('Type an IP or range (no spaces): ')
+			hosts2scan_longFormat = self.cf.hosts2completeFormat(hosts2scan_shortFormat) # return list
+			hosts2scan_longFormat = self.cf.eliminateMyIPInAList(hosts2scan_longFormat, self.myIP)
+			hosts2scan_shortFormat = self.cf.hosts2nmapFormat(hosts2scan_longFormat)
+		return hosts2scan_shortFormat
 
 	def __ask4parameters(self):
 		parameters=""
@@ -275,25 +285,30 @@ class Scan:
 		if revision_with_values == -1:
 			self.db.add_old_hosts (self.num_audit, self.num_rev)
 
+	# scan for Discovery option
+	def __scanDiscovery(self, hosts2scan):
+		print 'Discovery scan started'
+		self.nm.scan(hosts=hosts2scan, arguments='-n -sP --exclude '+str(self.myIP))
+
 	# scan for Operatim System
 	def __scanDiscoverOS(self, hosts2scan):
 		print 'Discover operating system started'
-		self.nm.scan(hosts=hosts2scan, arguments="-O")
+		self.nm.scan(hosts=hosts2scan, arguments='-O --exclude '+str(self.myIP))
 
 	# scan for Version option
 	def __scanVersion(self, hosts2scan):
 		print 'Port scan started'
-		self.nm.scan(hosts=hosts2scan, arguments="-sV")
+		self.nm.scan(hosts=hosts2scan, arguments='-sV --exclude '+str(self.myIP))
 
 	# scan for Script option
 	def __scanScript(self, hosts2scan):
 		print 'Port scan started'
-		self.nm.scan(hosts=hosts2scan, arguments="-sV -sC")
+		self.nm.scan(hosts=hosts2scan, arguments='-sV -sC --exclude '+str(self.myIP))
 
 	# scan for CustomParameters option
 	def __scanCustomParameters(self, hosts2scan, parameters):
 		print 'Scan started'
-		self.nm.scan(hosts=hosts2scan, arguments=parameters)
+		self.nm.scan(hosts=hosts2scan, arguments=parameters + ' --exclude '+str(self.myIP))
 
 	# scan for Ports option
 	def __scanPorts(self, hosts2scan, ports2scan):
@@ -360,7 +375,7 @@ class Scan:
 					print str(hostWithPorts) + " no mac info"
 				if infoTCP == 1:
 					# show scanned information
-					self.__printPortsScan(hostWithPorts, portsUp, portScanOption)
+					self.__printPortsScanned(hostWithPorts, portsUp, portScanOption)
 					# add new information to puertos table
 					self.__addNewPorts(id_hostWithPorts, portsUp, hostWithPorts, portScanOption)
 					# add 'closed' ports
@@ -493,8 +508,18 @@ class Scan:
 		ports2search_listOfStrings = self.cf.convertSring2ListWitchAllValues(ports2search) # example ['20', '21', '22, '80']
 		return [por2search_string, ports2search_listOfStrings]
 
+	def __printHostsScanned(self, discoveryOption=0):
+		if discoveryOption == 1:
+			print 'hosts up: '
+			for host in self.nm.all_hosts():
+				print host
+			print str(self.myIP) + ' (my IP)'
+		else:
+			print 'hosts scanned up: '
+			for host in self.nm.all_hosts():
+				print host
 
-	def __printPortsScan(self, hostWithPorts, ports, portScanOption):
+	def __printPortsScanned(self, hostWithPorts, ports, portScanOption):
 		if portScanOption == 0:
 			# show scanned ports
 			print str(hostWithPorts) + ' ' + str(ports)

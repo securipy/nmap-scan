@@ -117,12 +117,16 @@ class ChangeFormat:
         self.cIP = CalcIP()
         self.ck = Check()
 
-    def IP2scan(self,introduced):
+    def hosts2completeFormat(self,introduced):
         # work with class C ip
-        # example '192.168.1.1-5,199-201' -> ('192.168.1.1', '192.168.1.2', '192.168.1.3', '192.168.1.4', '192.168.1.5', '192.168.1.199', '192.168.1.200', '192.168.1.201')
+        # example '192.168.1.1-5,199-201' -> ['192.168.1.1', '192.168.1.2', '192.168.1.3', '192.168.1.4', '192.168.1.5', '192.168.1.199', '192.168.1.200', '192.168.1.201']
         if self.ck.checkCharacter(introduced) == 1:
             print color('rojo', 'Invalid syntax')
             return -1
+        if self.ck.checkComa(introduced) == -1 and self.ck.checkDash(introduced) == -1:
+            # only one IP has been introduced
+            ip2scan = self.convertsString2List(introduced)
+            return ip2scan
         else:
             # separators
             separate_dash = re.compile('-')
@@ -143,7 +147,7 @@ class ChangeFormat:
                     # work with each part separated by coma
                     for partComa in partsComa[1:]: # first part already included
                         # IP range indicated with dash (-)
-                        if len(re.findall("-",partComa)) >= 1:
+                        if self.ck.checkDash(partComa) == 1:
                             rangeDashParts = separate_dash.split(partComa)
                             range_dash = self.rangeWorkWithDashPart(ipAsList, rangeDashParts)
                             ip2scan.extend(range_dash)
@@ -154,7 +158,7 @@ class ChangeFormat:
                             ip2scan.append(ip2add)
                 #ip2scan = list(set(ip2scan)) # eliminate repeated values
                 #ip2scan.reverse() # eliminate repeated values inverts list order
-                return tuple(ip2scan) # example: ['192.168.1.50', '192.168.1.51', '192.168.1.52'] -> ('192.168.1.50', '192.168.1.51', '192.168.1.52')
+                return ip2scan # example: ['192.168.1.50', '192.168.1.51', '192.168.1.52']
             except:
                 print color('rojo', 'Invalid syntax')
                 return -1
@@ -175,7 +179,7 @@ class ChangeFormat:
         # example 2: '192.168.1.1' -> ['192.168.1.1']
         # example 3: '192.168.1.1-2' -> ['192.168.1.1-2']
         separate_coma = re.compile(',') # separator
-        if len(re.findall(",",strIntroduced)) >= 1: # any coma introduced
+        if self.ck.checkComa(strIntroduced) == 1: # any coma introduced
             comaParts = separate_coma.split(strIntroduced)
         else:
             comaParts = [strIntroduced]
@@ -198,7 +202,7 @@ class ChangeFormat:
     def rangeWorkWithDashPart(self, completeIPAsList, rangeIP):
         # class C ip
         # example 1: '192.168.1.3-5' -> ['192.168.1.3', '192.168.1.4', '192.168.1.5']
-        # example 2: '3-5' neccesary to introduce first parts of the ip: '3-5' -> ['x.x.x.3', 'x.x.x.4', 'x.x.x.5']
+        # example 2: '3-5' necessary to introduce first parts of the ip: '3-5' -> ['x.x.x.3', 'x.x.x.4', 'x.x.x.5']
         # rangeIP: ['3','5']
         # completeIPAsList: ['x','x','x','1'] (1 is an example)
         first_ip = '%s.%s.%s.%s' %(completeIPAsList[0],completeIPAsList[1],completeIPAsList[2], rangeIP[0])
@@ -207,13 +211,13 @@ class ChangeFormat:
         return range_ip
 
 
-    def hosts2nmapFormat (self, IPList):
-        # converts a list to the NMap required format
+    def hosts2nmapFormat (self, IPTuple):
+        # converts a tuple to the Nap required format
         # for class C
-        # example ['192.168.1.1', '192.168.1.200', '192.168.1.33'] to '192.168.1.1,200,33'
+        # example ('192.168.1.1', '192.168.1.200', '192.168.1.33') to '192.168.1.1,200,33'
         separate_dot = re.compile('\.') # separador
-        ipReturn = IPList[0]
-        for ip in IPList[1:]:
+        ipReturn = IPTuple[0]
+        for ip in IPTuple[1:]:
             ip_partes = separate_dot.split(ip)
             ipReturn = '%s,%s' %(ipReturn,ip_partes[3])
         return ipReturn
@@ -225,6 +229,11 @@ class ChangeFormat:
         rmCh3 = rmCh2.replace('"', "")
         stringFinal = rmCh3.replace("'", "")
         return stringFinal
+
+    def convertsString2List(self, string):
+        # example: '192.168.1.1' -> ['192.168.1.1']
+        list = string.split()
+        return list
 
     def convertSring2ListWitchAllValues(self, ports):
         # example '1,2,4-6,7,10-12,13,15' to ['1', '2', '4', '5', '6', '7', '10', '11', '12', '13', '15']
@@ -278,6 +287,19 @@ class ChangeFormat:
                 listInt.append(tuple[0])
             return listInt
 
+    def eliminateMyIPInAList(self, hosts2scan_longFormat, myIP):
+        # hosts2scan: list of strings of IP at complete format
+        # return a list of strings
+        # avoid options 'Versions' and 'Script' uses our host's IP
+        # hosts IP at hosts2scan must be in complete format, example '192.168.1.1'
+        if not isinstance(hosts2scan_longFormat,list): # check if is not a list
+            print 'ho'
+            hosts2scan_longFormat = self.convertsString2List(hosts2scan_longFormat) # necessary to work with a list
+        if myIP in hosts2scan_longFormat:
+            hosts2scan_longFormat.remove(myIP)
+        return hosts2scan_longFormat
+
+
 class Check:
 
     def checkInt(self, string, message=1):
@@ -299,6 +321,20 @@ class Check:
          # if a character is in a string, it returns 1
         chars = set('abcdefghijklmnñopqrstuvwxyzABCDEFGHIJKLMÑNOPQRSTUVWXYZ')
         if any((str_ch in chars) for str_ch in string):
+            return 1
+        else:
+            return -1
+
+    def checkComa(self, string):
+        # check if a string has a coma
+        if len(re.findall(",",string)) >= 1:
+            return 1
+        else:
+            return -1
+
+    def checkDash(self, string):
+        # check i a string has a dash
+        if len(re.findall("-",string)) >= 1:
             return 1
         else:
             return -1
