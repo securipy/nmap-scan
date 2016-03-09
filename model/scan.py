@@ -126,7 +126,7 @@ class Scan:
 		self.__check_audit_rev()
 		# add last revison hosts (once per revision)
 		self.__addLastRevisionHosts()
-		# ask for ip to scan; save hosts ip as nmap format and as complete format
+		# ask for ip to scan. Save hosts ip as nmap format (shortFormat) and as complete format (longFormat)
 		hosts2scan_shortFormat, hosts2scan_longFormat = self.__ask4hosts2scan()
 		if hosts2scan_longFormat != -1:
 			# scan
@@ -141,7 +141,7 @@ class Scan:
 		self.__check_audit_rev()
 		# add last revison hosts (once per revision)
 		self.__addLastRevisionHosts()
-		# ask for ip to scan
+		# ask for ip to scan. Save hosts ip as nmap format (shortFormat) and as complete format (longFormat)
 		[hosts2scan_shortFormat, hosts2scan_longFormat] = self.__ask4hosts2scanOptions()
 		# save ip to scan
 		if hosts2scan_shortFormat != -1 and hosts2scan_longFormat != -1:
@@ -267,7 +267,7 @@ class Scan:
 		hosts2scan_shortFormat=""
 		while hosts2scan_shortFormat == "":
 			hosts2scan_shortFormat = raw_input('Type an IP or range (no spaces): ')
-			if self.ck.checkCharacter(hosts2scan_shortFormat) == 1:
+			if self.ck.checkCharacter(hosts2scan_shortFormat) == 1 or self.ck.checkIPparts(hosts2scan_shortFormat) == -1:
 				print color('rojo', 'Invalid syntax')
 				hosts2scan_shortFormat=""
 			else:

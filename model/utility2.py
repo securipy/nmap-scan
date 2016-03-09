@@ -113,6 +113,8 @@ class CalcIP:
 
 class ChangeFormat:
 
+    from utility_convert2nmapFormat import utility_convert2nmapFormat
+
     def __init__(self):
         self.cIP = CalcIP()
         self.ck = Check()
@@ -196,7 +198,6 @@ class ChangeFormat:
         list2return = separate_dot.split(str2convert)
         return list2return
 
-
     def createListComaParts(self, strIntroduced, separate_coma):
         # example: '5,10-12' -> ['5','10-12']
         # example 2: '1' = ['1']
@@ -229,22 +230,16 @@ class ChangeFormat:
 
     def hosts2nmapFormat (self, IPTupleCompleteIP):
         # converts a tuple to the Nmap required format
-        # for class C
-        # example ('192.168.1.1', '192.168.1.200', '192.168.1.33') to '192.168.1.1,200,33'
+        # example: ('192.168.1.1', '192.168.1.61', '193.168.1.1', '193.168.1.61') -> '192-193.168.1.1,61'
+        # works with hosts ip of any class
         # variables
-        # - input: tuple
-        # - output: string
-        separate_dot = re.compile('\.') # separator
-        ipReturn = IPTupleCompleteIP[0] # save first str in the tuple
-        for ip in IPTupleCompleteIP[1:]: # work with hosts ip starting with second ip
-            ipParts = separate_dot.split(ip) # example: '192.168.1.200' -> ['192', '168', '1', '200']
-            ipReturn = '%s,%s' %(ipReturn,ipParts[3]) # add last part of the ip
-        # HostsIP2shorten = tuple (IPTupleCompleteIP) # save hosts IP that are not at nmap format
-        return ipReturn
+        # - input. IPTupleCompleteIP: tuple
+        # - output. hostsIPnmapFormat: string
+        hostsIPnmapFormat = str(self.utility_convert2nmapFormat(IPTupleCompleteIP)) # convert to string, if not it is instace type
+        return hostsIPnmapFormat
 
-
-    # sql queries do not accept some characters
     def eliminateCharacters (self, string2change):
+        # sql queries do not accept some characters
         rmCh1 = string2change.replace("{", "")
         rmCh2 = rmCh1.replace("}", "")
         rmCh3 = rmCh2.replace('"', "")
@@ -336,10 +331,19 @@ class Check:
         else:
             return -1
 
-    def checkCharacter(self, string):
+    def checkCharacter(self, string2study):
          # if a character is in a string, it returns 1
         chars = set('abcdefghijklmnñopqrstuvwxyzABCDEFGHIJKLMÑNOPQRSTUVWXYZ')
-        if any((str_ch in chars) for str_ch in string):
+        if any((str_ch in chars) for str_ch in string2study):
+            return 1
+        else:
+            return -1
+
+    def checkIPparts(self, string2study):
+        # check if the hosts IP introduced have 4 parts
+        # example: '192.168.1' is incorrect, '192.168.1.1,33' is correct
+        separate_dot = re.compile('\.')
+        if len(separate_dot.split(string2study)) == 4:
             return 1
         else:
             return -1
