@@ -523,9 +523,7 @@ class Scan:
 
 	def __printHostsScanned(self, discoveryOption=0, showAllInfo=0):
 		if discoveryOption == 1:
-			print 'Hosts up: '
-			for host in self.nm.all_hosts():
-				print host
+			print 'Hosts up: ' + str(self.nm.all_hosts())
 			print str(self.myIP) + ' (my IP)'
 		else:
 			if showAllInfo == 0:
@@ -541,12 +539,13 @@ class Scan:
 						print '- No info scanned'
 
 	def __printPortsScanned(self, hostWithPorts, ports, portScanOption, showAllInfo=0):
+		ports = sorted(set(ports), key=int) # order in ascendent mode
 		if portScanOption == 0:
 			# show scanned ports
 			if showAllInfo == 0:
-				print str(hostWithPorts) + ' ' + str(ports)
+				print str(hostWithPorts) + ': ' + str(ports)
 			else:
-				print '\n' + str(hostWithPorts) + ' ' + str(ports)
+				print '\n' + str(hostWithPorts) + ': ' + str(ports)
 				for port in ports:
 					portVersionInformation = self.__getPortInformation(hostWithPorts, port)[0] # portInformation = [portVersionInformation, portScriptInformation, portPortInformation]
 					print '- ' + str(port)
