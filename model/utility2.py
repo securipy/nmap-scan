@@ -339,6 +339,21 @@ class Check:
         else:
             return -1
 
+    def checkInString(self, string2study, what2search):
+        # check if 'what2search' is in 'string2study'
+        # case sensitive
+        # variables:
+        # - inputs:
+        # -- string2study: string we want to revise
+        # -- what2search: string to find in string2study
+        # - outputs:
+        # -- 1: 'what2study' is in 'string2study'
+        # -- -1: 'what2study' is not in 'string2study'
+        if what2search in string2study:
+            return 1
+        else:
+            return -1
+
     def checkIPparts(self, string2study):
         # check if the hosts IP introduced have 4 parts
         # example: '192.168.1' is incorrect, '192.168.1.1,33' is correct
@@ -368,3 +383,17 @@ class Check:
             return 1
         else:
             return -1
+
+    def checkAnyIs1(self, list2study):
+        # check if any of the elements in the list2study is equals 1
+        for element in list2study:
+            if element == 1:
+                return 1
+        return -1
+
+    def checkAllIs1(self, list2study):
+        # check if all of the elements in the list2study is equals 1
+        for element in list2study:
+            if element != 1:
+                return -1
+        return 1

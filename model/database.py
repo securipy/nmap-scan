@@ -144,7 +144,7 @@ class Database:
 	def add_old_hosts(self, id_audit, id_rev): # id_rev[=]str
 		last_revision = self.retrieve_last_revision4thisAudit(id_audit, id_rev)
 		if int(last_revision) >= 1: # first revision has id 1 (before this, no revision with values)
-			sql = "INSERT INTO hosts (estado, id_revision, ip, fecha, mac) SELECT estado, '%s', ip, fecha, mac FROM hosts WHERE id_revision = (SELECT id FROM revision WHERE id = '%s' AND id_auditorias = '%s');" % (id_rev, last_revision, id_audit) # necessary compare audit in order not to get values of another audit
+			sql = "INSERT INTO hosts (OS, estado, id_revision, ip, fecha, mac) SELECT OS, estado, '%s', ip, fecha, mac FROM hosts WHERE id_revision = (SELECT id FROM revision WHERE id = '%s' AND id_auditorias = '%s');" % (id_rev, last_revision, id_audit) # necessary compare audit in order not to get values of another audit
 			self.cur.execute(sql)
 			self.con.commit()
 			return self.cur.lastrowid
@@ -281,11 +281,11 @@ class Database:
 			return -1
 
 	# Retrieve id of ports that are open at the db for this id_host but are not scanned as ports open; get last row added
-	def retrieve_id_ports2putClosed(self, id_host, portsClosed):
-		portsClosed = tuple(portsClosed) # necessary a tuple for the sql petition
-		if len(portsClosed)==1:
-			portsClosed = portsClosed+portsClosed    # avoid tuple to end with coma
-		sql = "SELECT id FROM puertos WHERE puerto NOT IN " + str(portsClosed) + " AND estado = 'open' AND id_hosts = '%s' AND id IN (SELECT id FROM (SELECT id, COUNT(*) AS c FROM puertos GROUP BY puerto HAVING c>=1));"  % id_host
+	def retrieve_id_ports2putClosed(self, id_host, portsScannedAsUp):
+		portsScannedAsUp = tuple(portsScannedAsUp) # necessary a tuple for the sql petition
+		if len(portsScannedAsUp)==1:
+			portsScannedAsUp = portsScannedAsUp+portsScannedAsUp    # avoid tuple to end with coma
+		sql = "SELECT id FROM puertos WHERE puerto NOT IN " + str(portsScannedAsUp) + " AND estado = 'open' AND id_hosts = '%s' AND id IN (SELECT id FROM (SELECT id, COUNT(*) AS c FROM puertos GROUP BY puerto HAVING c>=1));"  % id_host
 		if self.cur.execute(sql) > 0:
 			id_ports = self.cur.fetchall()
 			if id_ports != []: # this revision has values at the table
@@ -296,15 +296,15 @@ class Database:
 			return -1
 
 	# Retrieve id of ports that are open at the db for this id_host, we said to scan them but are not scanned as ports open; get last row added
-	def retrieve_id_ports2putClosedPortOption(self, id_host, portsClosed, portsScanned):
+	def retrieve_id_ports2putClosedPortOption(self, id_host, portsScannedAsUp, portsScanned):
 		# portsScanned: list
-		portsClosed = tuple(portsClosed) # necessary a tuple for the sql petition
-		if len(portsClosed)==1:
-			portsClosed = portsClosed+portsClosed    # avoid tuple to end with coma
+		portsScannedAsUp = tuple(portsScannedAsUp) # necessary a tuple for the sql petition
+		if len(portsScannedAsUp)==1:
+			portsScannedAsUp = portsScannedAsUp+portsScannedAsUp    # avoid tuple to end with coma
 		portsScanned = tuple(portsScanned) # necessary a tuple for the sql petition
 		if len(portsScanned)==1:
 			portsScanned = portsScanned+portsScanned    # avoid tuple to end with coma
-		sql = "SELECT id FROM puertos WHERE puerto IN " + str(portsScanned) + " AND puerto NOT IN " + str(portsClosed) + " AND estado = 'open' AND id_hosts = '%s' AND id IN (SELECT id FROM (SELECT id, COUNT(*) AS c FROM puertos GROUP BY puerto HAVING c>=1));"  % id_host
+		sql = "SELECT id FROM puertos WHERE puerto IN " + str(portsScanned) + " AND puerto NOT IN " + str(portsScannedAsUp) + " AND estado = 'open' AND id_hosts = '%s' AND id IN (SELECT id FROM (SELECT id, COUNT(*) AS c FROM puertos GROUP BY puerto HAVING c>=1));"  % id_host
 		if self.cur.execute(sql) > 0:
 			id_ports = self.cur.fetchall()
 			if id_ports != []: # this revision has values at the table
