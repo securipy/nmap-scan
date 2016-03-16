@@ -32,12 +32,14 @@ class Scan:
 		self.ck = Check()
 		self.save_path = 'modules/nmap-scan/model/ports' # save .txt files
 		self.myIP = socket.gethostbyname(socket.gethostname()) # avoid save information of our own host
-		self.scanOptions = {'discovery':0, 'operatingSystem':0, 'versionORscript':0, 'portsState':0} # what the user want to scan. Values: -1 (not used) or 1 (used)
+		self.scanOptions = {'discovery':0, 'operatingSystem':0, 'versionORscript':0, 'custom':0, 'portsState':0} # what the user want to scan. Values: -1 (not used) or 1 (used)
+		self.scanCustomNotAllowedOptions = ['-iR'] # not allowed command at CustomParameters option
 
 	def __actualieOptions(self):
 		# know type of scan
-		self.scanOptions4Hosts = [self.scanOptions['discovery'], self.scanOptions['operatingSystem']] # options for studying ports
-		self.scanOptions4Ports = [self.scanOptions['versionORscript'], self.scanOptions['portsState']] # options for studying ports
+		self.scanOptions4Hosts = [self.scanOptions['discovery'], self.scanOptions['operatingSystem'], self.scanOptions['custom']] # options for studying ports
+		self.scanOptions4Ports = [self.scanOptions['versionORscript'], self.scanOptions['portsState'], self.scanOptions['custom']] # options for studying ports
+		# as we see, with custom option all the information is saved
 
 	def select_audit(self):
 		auditNotAtDB = 0
@@ -128,7 +130,7 @@ class Scan:
 				self.select_revision()
 
 	def discovery(self):
-		# check if a revision and audit were selected and add last revison hosts (once per revision)
+		# check if a revision and audit were selected and add last revison hosts (once per revision), and notifies if you haven't got network connection
 		self.__initScan()
 		# ask for hosts ip to scan. Save hosts ip as nmap format (shortFormat) and as complete format (longFormat)
 		hosts2scan_shortFormat, hosts2scan_longFormat = self.__ask4hosts2scan()
@@ -147,8 +149,7 @@ class Scan:
 			self.__actualieOptions()
 
 	def discoverOS(self):
-		# example, for a mobile phone this information will be saved: 'osclass': {'vendor': 'Apple', 'osfamily': 'iOS', 'type': 'phone', 'osgen': '6.X', 'accuracy': '100'}
-		# check if a revision and audit were selected and add last revison hosts (once per revision)
+		# check if a revision and audit were selected and add last revison hosts (once per revision), and notifies if you haven't got network connection
 		self.__initScan()
 		# ask for hosts ip to scan. Save hosts ip as nmap format (shortFormat) and as complete format (longFormat)
 		[hosts2scan_shortFormat, hosts2scan_longFormat] = self.__ask4hosts2scanOptions()
@@ -168,7 +169,7 @@ class Scan:
 			self.__actualieOptions()
 
 	def version(self):
-		# check if a revision and audit were selected and add last revison hosts (once per revision)
+		# check if a revision and audit were selected and add last revison hosts (once per revision), and notifies if you haven't got network connection
 		self.__initScan()
 		# ask for hosts ip to scan
 		hosts2scan = self.__ask4hosts2scanOptions()[0]
@@ -187,7 +188,7 @@ class Scan:
 			self.__actualieOptions()
 
 	def script(self):
-		# check if a revision and audit were selected and add last revison hosts (once per revision)
+		# check if a revision and audit were selected and add last revison hosts (once per revision), and notifies if you haven't got network connection
 		self.__initScan()
 		# ask for hosts ip to scan
 		hosts2scan = self.__ask4hosts2scanOptions()[0]
@@ -207,40 +208,41 @@ class Scan:
 
 	def CustomParameters(self):
 		# introduce custom parameters
-		# check if a revision and audit were selected and add last revison hosts (once per revision)
+		# check if a revision and audit were selected and add last revison hosts (once per revision), and notifies if you haven't got network connection
 		self.__initScan()
 		# ask for hosts ip to scan. Save hosts ip as nmap format (shortFormat) and as complete format (longFormat)
 		[hosts2scan_shortFormat, hosts2scan_longFormat] = self.__ask4hosts2scanOptions()
 		if hosts2scan_shortFormat != -1 and hosts2scan_longFormat != -1:
-			# ask ports to scan
-			[ports2scan_shortFormat, ports2scan_longFormat] = self.__ask4ports2search()
 			# ask for parameters of the scan
 			parameters = self.__ask4parameters()
+			# necessary save ports to scan
+			print '\nPlease, type again ports you want to scan'
+			ports2scan_longFormat = self.__ask4ports2search()[1]
 			# scan
-			self.__scanCustomParameters(hosts2scan_shortFormat, parameters, ports2scan_shortFormat)
+			self.__scanCustomParameters(hosts2scan_shortFormat, parameters)
 			# indicate options
-			self.__checkCustomParameters(parameters)
+			self.scanOptions['custom']=1
 			self.__actualieOptions()
 			# show ip of hosts up
 			self.__printHostsScanned()
-			# actualice database
+			# actualice database. In CustomParameters all the information is saved
 			self.__actualiceDB(hosts2scan_longFormat, ports2scan_longFormat)
-			# clear options
-			self.scanOptions=dict.fromkeys(self.scanOptions,0)
+			# clear option
+			self.scanOptions['custom']=0
 			self.__actualieOptions()
 
 	def puertos(self):
 	# introduce hosts ip and ports to scan and check if ports are open or closed, not more information is saved
-		# check if a revision and audit were selected and add last revison hosts (once per revision)
+		# check if a revision and audit were selected and add last revison hosts (once per revision), and notifies if you haven't got network connection
 		self.__initScan()
 		# ask for hosts ip to scan
-		hosts2scan = self.__ask4hosts2scanOptions()[0]
-		if hosts2scan != -1:
+		hosts2scan_shortFormat = self.__ask4hosts2scanOptions()[0]
+		if hosts2scan_shortFormat != -1:
 			# ask ports to scan
 			[ports2scan_shortFormat, ports2scan_longFormat] = self.__ask4ports2search()
 			if ports2scan_shortFormat != None:
 				# scan
-				self.__scanPorts(hosts2scan, ports2scan_shortFormat)
+				self.__scanPorts(hosts2scan_shortFormat, ports2scan_shortFormat)
 				# indicate options
 				self.scanOptions['portsState']=1
 				self.__actualieOptions()
@@ -262,11 +264,25 @@ class Scan:
 				if portHostsIP != -1: # port at database
 					self.__createFile(port, portHostsIP)
 
+	def allInfoHost(self):
+	# create a .txt file or print at console the information associated to a host
+	# 	# check if a revision and audit were selected
+	# 	self.__check_audit_rev()
+	# 	# ask how to get the information
+	# 	modeHostInformation = self.__ask4AllInfoHostMode()
+		print 'Coming soon'
+
 	def __initScan(self):
+		# check if you have network connection
+		self.__checkNetworkConnection()
 		# check if a revision and audit were selected
 		self.__check_audit_rev()
 		# add last revison hosts (once per revision)
 		self.__addLastRevisionHosts()
+
+	def __checkNetworkConnection(self):
+		if self.ck.checkInString(self.myIP, '127.0.0') == 1: # if your ip is 127.0.0.x you haven't got network connection
+			print color('rojo', 'Are you sure you have network connection?')
 
 	def __check_audit_rev(self):
 		if self.num_audit == None and self.nom_audit == None:
@@ -295,15 +311,14 @@ class Scan:
 				hosts2scan_shortFormat, hosts2scan_longFormat = self.__getShortLongFormat(hosts2scan_longFormat)
 				print "Hosts to scan: " + str(hosts2scan_longFormat)
 				print "Number of hosts to scan: " + str(len(hosts2scan_longFormat))
-				IPdiscovered=1
 			else:
-				print "No hosts ip discovered for this revision"
+				print color('rojo','No hosts ip discovered for this revision')
 				hosts2scan_shortFormat = -1
 				hosts2scan_longFormat = -1
-				IPdiscovered = -1
+				hosts2scan_shortFormat, hosts2scan_longFormat = self.__ask4hosts2scan()
 		elif option2scan == 2:
 			hosts2scan_shortFormat, hosts2scan_longFormat = self.__ask4hosts2scan()
-		if hosts2scan_shortFormat == -1 and IPdiscovered != -1:
+		if hosts2scan_shortFormat == -1:
 			print "Error selecting ip"
 		return [hosts2scan_shortFormat, hosts2scan_longFormat] # -hosts2scan_shortFormat example: '192.168.1.1,2' -hosts2scan_longFormat example ('192.168.1.1','192.168.1.2')
 
@@ -334,6 +349,9 @@ class Scan:
 		parameters=""
 		while parameters == "":
 			parameters = raw_input('Type parameters for the scan: ')
+			if self.ck.checkInString(parameters, self.scanCustomNotAllowedOptions) == 1:
+				parameters = ""
+				print color('rojo','Thanks for using this tool\nThe specified option is not available\nRemember, this tool works with a database\nOptions not allowed: '+str(self.scanCustomNotAllowedOptions)+'\nTry another command')
 		return parameters
 
 	# add last revison's hosts if this is the first discovery for actual revision
@@ -363,14 +381,11 @@ class Scan:
 		self.nm.scan(hosts=hosts2scan, arguments='-sV -sC --exclude '+str(self.myIP))
 
 	# scan for CustomParameters option
-	def __scanCustomParameters(self, hosts2scan, parameters, ports2scan):
+	def __scanCustomParameters(self, hosts2scan, parameters):
 		# parameters: string
 		# ports2scan: string
 		print 'Custom scan started'
-		if ports2scan == None:
-			self.nm.scan(hosts=hosts2scan, arguments = parameters + ' --exclude '+str(self.myIP))
-		else:
-			self.nm.scan(hosts=hosts2scan, arguments = parameters + ports2scan + ' --exclude '+str(self.myIP))
+		self.nm.scan(hosts=hosts2scan, arguments = parameters + ' --exclude '+str(self.myIP))
 
 	# scan for Ports option
 	def __scanPorts(self, hosts2scan, ports2scan):
@@ -378,17 +393,6 @@ class Scan:
 		# ports2scan: string
 		print 'Ports scan started'
 		self.nm.scan(hosts=hosts2scan, arguments="-p"+ports2scan)
-
-	def __checkCustomParameters(self, parameters):
-		# check what information is scanned
-		if self.ck.checkInString(parameters, '-sP') == 1:
-			self.scanOptions['discovery'] = 1
-		if self.ck.checkInString(parameters, '-O') == 1:
-			self.scanOptions['operatingSystem'] = 1
-		if self.ck.checkAnyIs1([self.ck.checkInString(parameters, '-sV'), self.ck.checkInString(parameters, '-sC')]) == 1:
-			self.scanOptions['versionORscript'] = 1
-		if self.ck.checkInString(parameters, '-p') == 1:
-			self.scanOptions['portsState'] = 1
 
 	def __actualiceDB(self, hosts2scan_longFormat=None, ports2scan_longFormat=None): # example hosts2scan_longFormat=('192.168.1.50', '192.168.1.51', '192.168.1.52')
 		macs_up = [] # using later to know which hosts mac put down
@@ -483,7 +487,7 @@ class Scan:
 
 	def __getHostInformation(self, hostIP):
 		mac = self.__getMac(hostIP)
-		os = self.__getOperatingSystem(hostIP)
+		os = self.__getOperatingSystem(hostIP, mac)
 		portsUp = self.__getPorts(hostIP)
 		return mac, os, portsUp
 
@@ -494,9 +498,42 @@ class Scan:
 		except:
 			return None
 
-	def __getOperatingSystem(self, ip):
+	def __getOperatingSystem(self, ip, mac):
+		# example, for a mobile phone this information will be saved: 'osclass': {'vendor': 'Apple', 'osfamily': 'iOS', 'type': 'phone', 'osgen': '6.X', 'accuracy': '100'}
+		# example2, for a pc not retrieves osclass, only vendor: {'status': {'state': 'up', 'reason': 'arp-response'}, 'hostnames': [], 'vendor': {'xx:xx:xx:xx:xx:xx': 'Microsoft'}, 'addresses': {'mac': '20:62:74:DE:4D:88', 'ipv4': '172.19.221.10'}}
 		try:
 			return self.cf.convertDictionary2String(self.nm[ip]['osclass'])
+		except: # if not information are retrieved in 'osclass' maybe are at other form like at example2
+			return self.__getOperatingSystemInfoIndividually(ip, mac)
+
+	def __getOperatingSystemInfoIndividually(self, ip, mac):
+		# retreive information search directly for 'vendor', 'osfamily' etc
+		vendor = self.__getOSvendor(ip,mac)
+		osfamily = self.__getOSfamily(ip,mac)
+		type = self.__getOStype(ip,mac)
+		osgen = self.__getOSgen(ip,mac)
+		accuracy = self.__getOSaccuracy(ip,mac)
+		OS = 'vendor: %s \nosfamily: %s \ntype: %s \nosgen: %s  \naccuracy: %s' %(vendor, osfamily, type, osgen, accuracy)
+		return OS
+
+	def __getOSvendor(self,ip,mac):
+		return self.__getOS(ip,mac,'vendor')
+
+	def __getOSfamily(self,ip,mac):
+		return self.__getOS(ip,mac,'osfamily')
+
+	def __getOStype(self,ip,mac):
+		return self.__getOS(ip,mac,'type')
+
+	def __getOSgen(self, ip,mac):
+		return self.__getOS(ip,mac,'osgen')
+
+	def __getOSaccuracy(self, ip,mac):
+		return self.__getOS(ip,mac,'accuracy')
+
+	def __getOS(self,ip,mac,info):
+		try:
+			return self.nm[ip][info][mac]
 		except:
 			return None
 
@@ -524,42 +561,32 @@ class Scan:
 		return [portVersionInformation, portScriptInformation, portPortInformation]
 
 	def __getPortProduct(self, hostWithPorts, port):
-		try:
-			return self.nm[hostWithPorts]['tcp'][port]['product']
-		except:
-			return None
+		return self.__getPortInfo(hostWithPorts,port,'product')
 
 	def __getPortVersion(self, hostWithPorts, port):
-		try:
-			return self.nm[hostWithPorts]['tcp'][port]['version']
-		except:
-			return None
+		return self.__getPortInfo(hostWithPorts,port,'version')
 
 	def __getPortName(self, hostWithPorts, port):
-		try:
-			return self.nm[hostWithPorts]['tcp'][port]['name']
-		except:
-			return None
+		return self.__getPortInfo(hostWithPorts,port,'name')
 
 	def __getPortExtrainfo(self, hostWithPorts, port):
-		try:
-			return self.nm[hostWithPorts]['tcp'][port]['extrainfo']
-		except:
-			return None
+		return self.__getPortInfo(hostWithPorts,port,'extrainfo')
 
 	def __getPortScript(self, hostWithPorts, port):
-		try:
-			script = self.nm[hostWithPorts]['tcp'][port]['script'] # dictionary
+		script = self.__getPortInfo(hostWithPorts,port,'script') # dictionary
+		if script != None:
 			script = self.cf.convertDictionary2String(script)
-			return script
+		return script
+
+	def __getPortState(self, hostWithPorts, port):
+		return self.__getPortInfo(hostWithPorts,port,'state')
+
+	def __getPortInfo(self, ip, port, info):
+		try:
+			return self.nm[ip]['tcp'][port][info] # name, state, etc: string. script: dictionary
 		except:
 			return None
 
-	def __getPortState(self, hostWithPorts, port):
-		try:
-			return self.nm[hostWithPorts]['tcp'][port]['state'] # string
-		except:
-			return None
 
 	def __addClosedPorts(self, id_hostWithPorts, portsUp, portsScanned):
 		# portScanned: list of int numbers as strings
@@ -605,6 +632,11 @@ class Scan:
 			por2search_string = ports2search # example '20-22,80'
 			ports2search_listOfStrings = self.cf.convertSring2ListWitchAllValues(ports2search) # example ['20', '21', '22, '80']
 			return [por2search_string, ports2search_listOfStrings]
+
+	def __ask4AllInfoHostMode(self):
+		mode = ""
+		while mode == "":
+			mode = raw_input('Export information in a .txt file or show in console?')
 
 	def __printHostsScanned(self, showAllInfo=0):
 		if self.scanOptions['discovery'] == 1:

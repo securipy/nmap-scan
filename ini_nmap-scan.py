@@ -49,7 +49,8 @@ class add(object):
 			print color('magenta', '7. Custom Parameters')
 			print color('magenta', '8. Ports')
 			print color('magenta', '9. Generate file ports')
-			print color('magenta', '10. What is my base IP')
+			print color('magenta', '10. Get all information for a host')
+			print color('magenta', '11. What is my base IP')
 			print color('rojo', '0. Exit')
 		
 		__menu__()
@@ -80,6 +81,8 @@ class add(object):
 			elif sentencia == '9':
 				scan.portsFile()
 			elif sentencia == '10':
+				scan.allInfoHost()
+			elif sentencia == '11':
 				scan.calcIPbase()
 			elif sentencia == '0':
 				sys.exit()

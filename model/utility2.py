@@ -339,20 +339,22 @@ class Check:
         else:
             return -1
 
-    def checkInString(self, string2study, what2search):
+    def checkInString(self, string2study, what2searchList):
         # check if 'what2search' is in 'string2study'
         # case sensitive
         # variables:
         # - inputs:
         # -- string2study: string we want to revise
-        # -- what2search: string to find in string2study
+        # -- what2searchList: string or list of strings to find in string2study
         # - outputs:
         # -- 1: 'what2study' is in 'string2study'
         # -- -1: 'what2study' is not in 'string2study'
-        if what2search in string2study:
-            return 1
-        else:
-            return -1
+        if type(what2searchList) == str:    # convert what2search in a list if it is a string
+            what2searchList = what2searchList.split()
+        for what2search in what2searchList:
+            if what2search in string2study:
+                return 1
+        return -1
 
     def checkIPparts(self, string2study):
         # check if the hosts IP introduced have 4 parts
