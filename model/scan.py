@@ -10,7 +10,7 @@ __maintainer__ 	= "GoldraK & Roger Serentill & Carlos A. Molina"
 __email__ 		= "goldrak@gmail.com, hello@rogerserentill.com, carlosantmolina@gmail.com"
 __status__ 		= "Development"
 
-import sys, nmap, time, os.path, socket
+import sys, nmap, time, os.path, socket, fcntl, struct
 sys.path.append('model')
 from database import Database
 from nmapscan import NmapScan
@@ -31,9 +31,24 @@ class Scan:
 		self.cf = ChangeFormat()
 		self.ck = Check()
 		self.save_path = 'modules/nmap-scan/model/ports' # save .txt files
-		self.myIP = socket.gethostbyname(socket.gethostname()) # avoid save information of our own host
+		self.myIP = self.__getMyIP()# avoid save information of our own host
 		self.scanOptions = {'discovery':0, 'operatingSystem':0, 'versionORscript':0, 'custom':0, 'portsState':0} # what the user want to scan. Values: -1 (not used) or 1 (used)
 		self.scanCustomNotAllowedOptions = ['-iR'] # not allowed command at CustomParameters option
+
+	def __getMyIP(self):
+		myIP = socket.gethostbyname(socket.gethostname())
+		if self.ck.checkNetworkConnection(self.myIP) == -1:
+			self.myIP = self.__getInterfaceIP('eth0') # required at wired connections, because the last option get another interface IP
+
+	def __getInterfaceIP(self, interface):
+	# get IP address of the indicated interface
+	# https://stackoverflow.com/questions/24196932/how-can-i-get-the-ip-address-of-eth0-in-python
+	    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+	    return socket.inet_ntoa(fcntl.ioctl(
+	        s.fileno(),
+	        0x8915,  # SIOCGIFADDR
+	        struct.pack('256s', interface[:15])
+	    )[20:24])
 
 	def __actualieOptions(self):
 		# know type of scan
@@ -281,7 +296,7 @@ class Scan:
 		self.__addLastRevisionHosts()
 
 	def __checkNetworkConnection(self):
-		if self.ck.checkInString(self.myIP, '127.0.0') == 1: # if your ip is 127.0.0.x you haven't got network connection
+		if self.ck.checkNetworkConnection(self.myIP) == -1:
 			print color('rojo', 'Are you sure you have network connection?')
 
 	def __check_audit_rev(self):
@@ -396,15 +411,15 @@ class Scan:
 
 	def __actualiceDB(self, hosts2scan_longFormat=None, ports2scan_longFormat=None): # example hosts2scan_longFormat=('192.168.1.50', '192.168.1.51', '192.168.1.52')
 		macs_up = [] # using later to know which hosts mac put down
+		# indicate how info will will be showed
+		if self.ck.checkAnyIs1(self.scanOptions4Ports) == 1:
+			print 'Hosts IP: [open ports]'
 		for hostIP in self.nm.all_hosts():
 			# get host info
 			mac, os, portsUp = self.__getHostInformation(hostIP)
-			if self.ck.checkAnyIs1(self.scanOptions4Ports) == 1:
-				# work with each host with ports open
-				print 'Hosts IP: [open ports]'
 			# work with host mac
 			if mac == None:
-				print str(hostIP) + " no mac info"
+				print str(hostIP) + ": no mac info"
 			else:
 				if self.ck.checkAnyIs1(self.scanOptions4Hosts) == 1:
 					macs_up.append(mac)
@@ -587,7 +602,6 @@ class Scan:
 		except:
 			return None
 
-
 	def __addClosedPorts(self, id_hostWithPorts, portsUp, portsScanned):
 		# portScanned: list of int numbers as strings
 		if self.scanOptions['portsState'] == 0:
@@ -657,7 +671,7 @@ class Scan:
 
 	def __printPortsScanned(self, hostWithPorts, ports, showAllInfo=0):
 		if ports == None:
-			print str(hostWithPorts) + " no ports info"
+			print str(hostWithPorts) + ": no ports info"
 		else:
 			ports = sorted(set(ports), key=int) # order in ascendent mode
 			if self.scanOptions['portsState'] == 0:
@@ -682,7 +696,6 @@ class Scan:
 					if self.__getPortInformation(hostWithPorts, port)[2] == 'open': # portInformation = [portVersionInformation, portScriptInformation, portPortInformation]
 						portsOpen.append(port)
 				print str(hostWithPorts) + ' ' + str(portsOpen)
-
 
 	def __searchPortHostsIP(self, port):
 		# port: string

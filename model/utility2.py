@@ -316,6 +316,8 @@ class ChangeFormat:
 
 class Check:
 
+    import re
+
     def checkInt(self, string, message=1):
         try:
             int(string)
@@ -399,3 +401,11 @@ class Check:
             if element != 1:
                 return -1
         return 1
+
+    def checkNetworkConnection(self, ip):
+    # if ip = 127.x.x.x -> no network connection
+        ip1 = re.compile('\.').split(ip)[0] # ip ->['ip1', 'ip2', 'ip3', 'ip4']
+        if ip1 == str(127):
+            return -1
+        else:
+            return 1
