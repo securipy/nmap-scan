@@ -8,21 +8,14 @@ class utility_convert2nmapFormat:
 	# converts hosts IP at complete format to Nmap format
 	# example: ('192.168.1.1', '192.168.1.61', '193.168.1.1', '193.168.1.61') -> '192-193.168.1.1,61'
 
-	def __init__(self, hostsIPTupleCompleteIP):
-		self.hostsIPTupleCompleteIP = hostsIPTupleCompleteIP
-		self.IPnmapFormat = self.convert2nmapFormat()
-	
-	def __repr__(self):
-		# return value from this class
-		return repr(self.IPnmapFormat)
-
-	def convert2nmapFormat(self):
+	def convert2nmapFormat(self, hostsIPTupleCompleteIP):
+		# main function of this class
 		# example: ('192.168.1.1', '192.168.1.61', '193.168.1.1', '193.168.1.61') -> '192-193.168.1.1,61'
 		# can work with hosts IP of all classes
 		# variables:
 		# - input. hostsIPTupleCompleteIP: tuple of strings. These strings are hosts IP
 		# - output. IPnmapFormat: string. Hosts IP at nmap format
-		HostsIP2shorten = list(self.hostsIPTupleCompleteIP) # save hosts IP that are not at nmap format
+		HostsIP2shorten = list(hostsIPTupleCompleteIP) # save hosts IP that are not at nmap format
 		HostsIP2shorten = [self.createListDotParts(x) for x in HostsIP2shorten] # lists of lists. Example: ('192.168.1.1', '192.168.1.200', '192.168.1.33') -> [['192', '168', '1', '1'], ['192', '168', '1', '200'], ['192', '168', '1', '33']]
 		IPnmapFormat = map (list, zip(*HostsIP2shorten)) # list of lists of str. Example [['192', '192', '192'], ['168', '168', '168'], ['1', '1', '1'], ['1', '200', '33']] -> [['192', '192', '192'], ['168', '168', '168'], ['1', '1', '1'], ['1', '200', '33']]. Explanation: http://stackoverflow.com/questions/1388818/how-can-i-compare-two-lists-in-python-and-return-matches
 		IPnmapFormat = self.eliminateRepetitonsInListOfLists(IPnmapFormat) # example: [['192', '192', '192'], ['168', '168', '168'], ['1', '1', '1'], ['1', '200', '33']] -> [['192'], ['168'], ['1'], ['1', '33', '66']]
