@@ -25,7 +25,7 @@ class Database:
 		return self.cur.lastrowid
 
 	# Retrieve all audits
-	def retrieve_audits(self):
+	def retrieve_auditsAllInfo(self):
 		sql = "SELECT * FROM auditorias;"
 		if self.cur.execute(sql) > 0:
 			return self.cur.fetchall()
@@ -33,7 +33,7 @@ class Database:
 			return -1
 
 	# Retrieve audits by customer name, if doesn't exist, return -1
-	def retrieve_audit_name(self, cname):
+	def retrieve_auditAllInfoByName(self, cname):
 		sql = "SELECT * FROM auditorias WHERE nombre_cliente = '%s';" % cname
 		if self.cur.execute(sql) > 0:
 			return self.cur.fetchall()
@@ -72,8 +72,8 @@ class Database:
 		else:
 			return -1
 
-	# Retrieve revision by audit id
-	def retrieve_revison_id(self, id_audit):
+	# Retrieve all information in revision table by audit id
+	def retrieve_revisonAllInfoByAuditID(self, id_audit):
 		sql = "SELECT * FROM revision WHERE id_auditorias = '%s';" % id_audit
 		if self.cur.execute(sql) > 0:
 			return self.cur.fetchall()
@@ -81,7 +81,7 @@ class Database:
 			return -1
 
 	# Retrieve revision by audit name
-	def retrieve_revison_name(self, rev_name, id_audit):
+	def retrieve_revisionAllInfoByName(self, rev_name, id_audit):
 		sql = "SELECT * FROM revision WHERE revision = '%s' AND id_auditorias = '%s';" % (rev_name, id_audit)
 		if self.cur.execute(sql) > 0:
 			return self.cur.fetchall()
@@ -315,8 +315,8 @@ class Database:
 			return -1
 
 
-	# Retrieve host by id
-	def retrieve_host_by_id(self, id_host):
+	# Retrieve all host information by host id
+	def retrieve_hostAllInfoByID(self, id_host):
 		sql = "SELECT * FROM hosts WHERE id = '%s';" % id_host
 		if self.cur.execute(sql) > 0:
 			row_db = self.cur.fetchall()

@@ -49,7 +49,7 @@ class add(object):
 			print color('magenta', '7. Custom Parameters')
 			print color('magenta', '8. Ports')
 			print color('magenta', '9. Generate file ports')
-			print color('magenta', '10. Get all information for a host')
+			print color('magenta', '10. Get all information of a host')
 			print color('magenta', '11. What is my base IP')
 			print color('rojo', '0. Exit')
 		
