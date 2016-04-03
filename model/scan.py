@@ -10,15 +10,16 @@ __maintainer__ 	= "GoldraK & Roger Serentill & Carlos A. Molina"
 __email__ 		= "goldrak@gmail.com, hello@rogerserentill.com, carlosantmolina@gmail.com"
 __status__ 		= "Development"
 
-import sys, nmap, time, os.path, socket, fcntl, struct
+import sys, nmap, time, os.path
 sys.path.append('model')
 from database import Database
 from nmapscan import NmapScan
 from teco import color, style
-from utility2 import ChangeFormat, Check, Ask, Message
+from utility2 import ChangeFormat, Check, Message
+from utility_ask import Ask
 from utility_calculatorIP import CalcIP
-from utility_network import networkUtility
-from utility_selectAuditAndRevision import selectAuditRev
+from utility_network import NetworkUtility
+from utility_selectAuditAndRevision import SelectAuditRev
 import pprint
 
 class Scan:
@@ -29,7 +30,7 @@ class Scan:
 		self.revisionNumber = None
 		self.revisionName = None
 		self.myIP = None
-		self.ar = selectAuditRev()
+		self.ar = SelectAuditRev()
 		self.ask = Ask()
 		self.cf = ChangeFormat()
 		self.cIP = CalcIP()
@@ -37,7 +38,7 @@ class Scan:
 		self.db = Database()
 		self.ms = Message()
 		self.nm = nmap.PortScanner()
-		self.nt = networkUtility()
+		self.nt = NetworkUtility()
 		self.save_path = 'modules/nmap-scan/model/ports' # save .txt files
 		self.scanOptions = {'discovery':0, 'operatingSystem':0, 'versionORscript':0, 'custom':0, 'portsState':0} # what the user want to scan. Values: -1 (not used) or 1 (used)
 		self.scanCustomNotAllowedOptions = ['-iR'] # not allowed command at CustomParameters option
@@ -52,7 +53,7 @@ class Scan:
 	def discovery(self):
 		self.__initScan()
 		# ask for hosts ip to scan. Save hosts ip as nmap format (shortFormat) and as complete format (longFormat)
-		hosts2scan_shortFormat, hosts2scan_longFormat = self.__askHostsIP()
+		hosts2scan_shortFormat, hosts2scan_longFormat = self.ask.askHostsIP(self.myIP)
 		if hosts2scan_longFormat != -1:
 			# scan
 			self.__scanDiscovery(hosts2scan_shortFormat)
@@ -70,7 +71,7 @@ class Scan:
 	def discoverOS(self):
 		self.__initScan()
 		# ask for hosts ip to scan. Save hosts ip as nmap format (shortFormat) and as complete format (longFormat)
-		[hosts2scan_shortFormat, hosts2scan_longFormat] = self.__ask4hosts2scanOptions()
+		[hosts2scan_shortFormat, hosts2scan_longFormat] = self.ask.ask4hosts2scanOptions(self.auditNumber, self.revisionNumber, self.myIP)
 		# save ip to scan
 		if hosts2scan_shortFormat != -1 and hosts2scan_longFormat != -1:
 			# scan
@@ -89,7 +90,7 @@ class Scan:
 	def version(self):
 		self.__initScan()
 		# ask for hosts ip to scan
-		hosts2scan = self.__ask4hosts2scanOptions()[0]
+		hosts2scan = self.ask.ask4hosts2scanOptions(self.auditNumber, self.revisionNumber, self.myIP)[0]
 		if hosts2scan != -1:
 			# scan
 			self.__scanVersion(hosts2scan)
@@ -107,7 +108,7 @@ class Scan:
 	def script(self):
 		self.__initScan()
 		# ask for hosts ip to scan
-		hosts2scan = self.__ask4hosts2scanOptions()[0]
+		hosts2scan = self.ask.ask4hosts2scanOptions(self.auditNumber, self.revisionNumber, self.myIP)[0]
 		if hosts2scan != -1:
 			# scan
 			self.__scanScript(hosts2scan)
@@ -126,13 +127,13 @@ class Scan:
 	# introduce custom parameters
 		self.__initScan()
 		# ask for hosts ip to scan. Save hosts ip as nmap format (shortFormat) and as complete format (longFormat)
-		[hosts2scan_shortFormat, hosts2scan_longFormat] = self.__ask4hosts2scanOptions()
+		[hosts2scan_shortFormat, hosts2scan_longFormat] = self.ask.ask4hosts2scanOptions(self.auditNumber, self.revisionNumber, self.myIP)
 		if hosts2scan_shortFormat != -1 and hosts2scan_longFormat != -1:
 			# ask for parameters of the scan
-			parameters = self.__ask4parameters()
+			parameters = self.ask.ask4parameters(self.scanCustomNotAllowedOptions)
 			# necessary save ports to scan
 			print '\nPlease, type again ports you want to scan'
-			ports2scan_longFormat = self.__ask4ports2search()[1]
+			ports2scan_longFormat = self.ask.ask4ports2search()[1]
 			# scan
 			self.__scanCustomParameters(hosts2scan_shortFormat, parameters)
 			# indicate options
@@ -150,10 +151,10 @@ class Scan:
 	# introduce hosts ip and ports to scan and check if ports are open or closed, not more information is saved
 		self.__initScan()
 		# ask for hosts ip to scan
-		hosts2scan_shortFormat = self.__ask4hosts2scanOptions()[0]
+		hosts2scan_shortFormat = self.ask.ask4hosts2scanOptions(self.auditNumber, self.revisionNumber, self.myIP)[0]
 		if hosts2scan_shortFormat != -1:
 			# ask ports to scan
-			[ports2scan_shortFormat, ports2scan_longFormat] = self.__ask4ports2search()
+			[ports2scan_shortFormat, ports2scan_longFormat] = self.ask.ask4ports2search()
 			if ports2scan_shortFormat != None:
 				# scan
 				self.__scanPorts(hosts2scan_shortFormat, ports2scan_shortFormat)
@@ -171,7 +172,7 @@ class Scan:
 		# check if a revision and audit were selected
 		self.__check_audit_rev()
 		# ask ports to export
-		ports2File = self.__ask4ports2search()[1] # list of int numbers as strings, with all ports
+		ports2File = self.ask.ask4ports2search()[1] # list of int numbers as strings, with all ports
 		if ports2File != None:
 			for port in ports2File:
 				hostsIPwithAPort = self.__checkDBandGetDB4hostsIPwithAPort(port)
@@ -184,8 +185,8 @@ class Scan:
 	# 	# check if a revision and audit were selected
 	# 	self.__check_audit_rev()
 	# 	# ask how to get the information
-	# 	modeHostInformation = self.__askOptionHostIPallInfo()
-	# 	hostsIP_shortFormat, hostsIP_longFormat = self.__askHostsIP()
+	# 	modeHostInformation = self.ask.askOptionHostIPallInfo() # int
+	# 	hostsIP_shortFormat, hostsIP_longFormat = self.ask.askHostsIP()
 	# 	for hostIP in hostsIP_longFormat:
 	# 		hostsMac4IP = self.getMacs4IP(hostIP) # list of strings with hosts mac that have same IP. If only one mac it is a list of one string
 	# 		if len (hostsMac4IP) > 1:
@@ -230,61 +231,6 @@ class Scan:
 			self.select_audit()
 		if self.revisionNumber == None and self.revisionName == None:
 			self.select_revision()
-
-	def __ask4hosts2scanOptions(self):
-		# get ip to scan
-		print color('bcyan', 'Select IP to scan')
-		print color('cyan', '1. IP discovered \n2. Specify IP')
-		option2scan= ''
-		while option2scan != 1 and option2scan != 2:
-			option2scan = self.ask.ask4number()
-		if option2scan == 1:
-			# check if the discovery option was maded for this revision
-			discoveryDone = self.db.check_tableHostsValues4ThisRevision(self.auditNumber, self.revisionNumber) # check values at hosts table for this revision
-			if discoveryDone == 1:
-				# scan all discovered hosts, down hosts too because they can change to up
-				hosts2scan_longFormat = self.db.retrieve_hosts_ip_by_revision(self.auditNumber, self.revisionNumber)
-				hosts2scan_shortFormat, hosts2scan_longFormat = self.__getShortLongFormatFromLongFormat(hosts2scan_longFormat)
-				print "Hosts to scan: " + str(hosts2scan_longFormat)
-				print "Number of hosts to scan: " + str(len(hosts2scan_longFormat))
-			else:
-				print color('rojo', 'No hosts ip discovered for this revision')
-				hosts2scan_shortFormat, hosts2scan_longFormat = self.__askHostsIP()
-		elif option2scan == 2:
-			hosts2scan_shortFormat, hosts2scan_longFormat = self.__askHostsIP()
-		return [hosts2scan_shortFormat, hosts2scan_longFormat] # -hosts2scan_shortFormat example: '192.168.1.1,2' -hosts2scan_longFormat example ('192.168.1.1','192.168.1.2')
-
-	def __askHostsIP(self):
-		hostsIP_shortFormat=''
-		while hostsIP_shortFormat == '':
-			hostsIP_shortFormat = raw_input('Type an IP or range (no spaces): ')
-			if self.ck.checkCharacter(hostsIP_shortFormat) == 1 or self.ck.checkIPparts(hostsIP_shortFormat) == -1:
-				self.ms.adviseInvalidSyntax()
-				hostsIP_shortFormat=''
-			else:
-				hostsIP_longFormat = self.cf.hosts2completeFormat(hostsIP_shortFormat) # return list. Example ['192.168.1.50', '192.168.1.51', '192.168.1.52']
-				hostsIP_shortFormat, hostsIP_longFormat = self.__getShortLongFormatFromLongFormat(hostsIP_longFormat)
-		return hostsIP_shortFormat, hostsIP_longFormat
-
-	def __getShortLongFormatFromLongFormat(self, hostsIP_longFormat):
-		# variables:
-		# - input
-		# -- hostsIP_longFormat: hosts ip at complete format
-		# - output:
-		# -- hostsIP_shortFormat: hosts ip at nmap format
-		# -- hostsIP_longFormat: hosts ip at complete format
-		hostsIP_longFormat = tuple(self.cf.eliminateMyIPInAList(hostsIP_longFormat, self.myIP)) # tuple for SQL queries
-		hostsIP_shortFormat = self.cf.hosts2nmapFormat(hostsIP_longFormat)
-		return hostsIP_shortFormat,hostsIP_longFormat
-
-	def __ask4parameters(self):
-		parameters=""
-		while parameters == "":
-			parameters = raw_input('Type parameters for the scan: ')
-			if self.ck.checkInString(parameters, self.scanCustomNotAllowedOptions) == 1:
-				parameters = ""
-				print color('rojo', 'Thanks for using this tool\nThe specified option is not available\nRemember, this tool works with a database\nOptions not allowed: '+str(self.scanCustomNotAllowedOptions)+'\nTry another command')
-		return parameters
 
 	# add last revison's hosts if this is the first discovery for actual revision
 	def __addDBlastRevisionHosts(self):
@@ -540,33 +486,6 @@ class Scan:
 					self.db.add_port('closed', id_hostWithPorts, puerto_port, version_port, scripts_port)
 					#self.db.update_port_estadoANDfecha('closed', id_hostWithPorts, old_port[0])
 
-	def __ask4ports2search(self):
-		ports2search = ""
-		while ports2search == "":
-			ports2search = raw_input('Type ports (no spaces. For no port type None): ')
-			if ports2search != 'None':
-				if self.ck.checkCharacter(ports2search) == 1:
-					self.ms.adviseInvalidSyntax()
-					ports2search = ""
-		if ports2search == 'None': # At custom parameters option not always ports will be scanned
-			return[None, None]
-		else:
-			por2search_string = ports2search # example '20-22,80'
-			ports2search_listOfStrings = self.cf.convertSring2ListWitchAllValues(ports2search) # example ['20', '21', '22, '80']
-			return [por2search_string, ports2search_listOfStrings]
-
-	def __askOptionHostIPallInfo(self):
-		mode = ""
-		while mode == "":
-			mode = raw_input('Export information in a .txt file (1) or show in window (2)?')
-			if mode == str(1):
-				mode = 1
-			elif mode == str(2):
-				mode = 2
-			else:
-				mode = ""
-		return mode
-
 	def __showHostsIPscannedUp(self, showAllInfo=0):
 		print 'Hosts scanned up: ' + str(self.nm.all_hosts())
 		print 'My IP: ' + str(self.myIP)
@@ -645,35 +564,18 @@ class Scan:
 		auditName = self.db.retrieve_auditName(self.auditNumber)
 		revisionName = self.db.retrieve_revisionName(self.auditNumber, self.revisionNumber)
 		fileName = auditName + '_' + revisionName + '_' + port + '.txt'
-		fileCompleteName = os.path.join(self.save_path, fileName)
-		if self.__checkFileExists(fileCompleteName) == 1:
-			if self.__askOverwriteFile(port) == -1:
+		filePathAndName = os.path.join(self.save_path, fileName)
+		if self.ck.checkFileExists(filePathAndName) == 1:
+			if self.ask.askOverwriteFile(port) == -1:
 				fileName = auditName + '_' + revisionName + '_' + port + '_' + self.__getDatetime() + '.txt'
-				fileCompleteName = os.path.join(self.save_path, fileName)
-		file = open(fileCompleteName,'w')
+				filePathAndName = os.path.join(self.save_path, fileName)
+		file = open(filePathAndName,'w')
 		for ip in hostsIPwithAPort:
 			file.write(ip + '\n')
 		file.close()
 		if self.ck.checkListEmpty(hostsIPwithAPort) != -1:
 			print 'Port %s at database but port is closed or hosts are down \nFile created empty' %port
 		print 'File created: ' + fileName
-
-	def __checkFileExists(self, fileName):
-		try:
-			open(fileName,'r')
-			return 1
-		except:
-			return -1
-
-	def __askOverwriteFile(self, port):
-		fileOptions = ""
-		while fileOptions == "":
-			print color('rojo', 'File for port ' +str(port)+ ' already exists')
-			print color('cyan', 'Options:\n1.Overwrite \n2.New file')
-			fileOptions = self.ask.ask4number()
-			if fileOptions == 2:
-				fileOptions = -1
-		return fileOptions
 
 	def __getDatetime(self):
 		time2 = time.strftime("%H-%M-%S")

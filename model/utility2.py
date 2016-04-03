@@ -4,14 +4,27 @@
 import sys, re
 from teco import color, style
 from utility_calculatorIP import CalcIP
-from utility_convert2nmapFormat import utility_convert2nmapFormat
+from utility_convert2nmapFormat import Utility_convert2nmapFormat
 
 class ChangeFormat:
 
     def __init__(self):
         self.cIP = CalcIP()
         self.ck = Check()
-        self.cfNmap = utility_convert2nmapFormat()
+        self.cfNmap = Utility_convert2nmapFormat()
+
+    def getShortLongFormatFromLongFormat(self, hostsIP_longFormat, myIP):
+        # variables:
+        # - input
+        # -- hostsIP_longFormat: hosts ip at complete format
+        # -- myIP: string
+        # - output (without myIP):
+        # -- hostsIP_shortFormat: hosts ip at nmap format
+        # -- hostsIP_longFormat: hosts ip at complete format
+        hostsIP_longFormat = tuple(self.eliminateMyIPInAList(hostsIP_longFormat, myIP)) # tuple for SQL queries
+        hostsIP_shortFormat = self.hosts2nmapFormat(hostsIP_longFormat)
+        return hostsIP_shortFormat,hostsIP_longFormat
+
 
     def hosts2completeFormat(self,hostsIPnmapFormat):
         # variables:
@@ -311,34 +324,12 @@ class Check:
         else:
             return 1
 
-class Ask:
-
-    def __init__(self):
-        self.cf = ChangeFormat()
-        self.ck = Check()
-
-    def ask4name(self, what2ask4):
-        name = ''
-        while name == '':
-            name = raw_input(str(what2ask4)+' name: ')
-        return name
-
-    def ask4number(self):
-        number = ''
-        while number == '':
-            print 'Select number'
-            number = self.askNumber()
-        return number
-
-    def askNumber(self):
-        # return number or ''
-        number = raw_input ('>> ') # string
-        if self.ck.checkStrIsInt(number) == -1:
-            number = ''
-            print color('rojo', '\nInvalid option\n')
-        else:
-            number = self.cf.convertString2Int(number)
-        return number
+    def checkFileExists(self, filePathAndName):
+        try:
+            open(filePathAndName,'r')
+            return 1
+        except:
+            return -1
 
 class Message:
 

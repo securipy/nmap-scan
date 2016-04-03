@@ -10,13 +10,14 @@ __maintainer__ 	= "GoldraK & Roger Serentill & Carlos A. Molina"
 __email__ 		= "goldrak@gmail.com, hello@rogerserentill.com, carlosantmolina@gmail.com"
 __status__ 		= "Development"
 
-import sys, os.path, fcntl, struct
+import sys
 sys.path.append('model')
 from database import Database
 from teco import color, style
-from utility2 import Check, Ask
+from utility2 import Check
+from utility_ask import Ask
 
-class selectAuditRev:
+class SelectAuditRev:
 
 	def __init__(self):
 		self.db = Database()

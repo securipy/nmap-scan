@@ -4,7 +4,7 @@ import re
 from itertools import groupby
 from operator import itemgetter
 
-class utility_convert2nmapFormat:
+class Utility_convert2nmapFormat:
 	# converts hosts IP at complete format to Nmap format
 	# example: ('192.168.1.1', '192.168.1.61', '193.168.1.1', '193.168.1.61') -> '192-193.168.1.1,61'
 

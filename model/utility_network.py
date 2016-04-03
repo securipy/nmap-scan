@@ -10,13 +10,13 @@ __maintainer__ 	= "GoldraK & Roger Serentill & Carlos A. Molina"
 __email__ 		= "goldrak@gmail.com, hello@rogerserentill.com, carlosantmolina@gmail.com"
 __status__ 		= "Development"
 
-import sys, os.path, socket, fcntl, struct
+import sys, socket, fcntl, struct
 sys.path.append('model')
 from teco import color, style
 from utility2 import Check
 
 
-class networkUtility:
+class NetworkUtility:
 
 	def __init__(self):
 		self.ck = Check()
