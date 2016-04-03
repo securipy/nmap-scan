@@ -160,7 +160,7 @@ class Database:
 
 	# add ports for the previous id host for a host
 	def add_old_ports4host(self, id_previousHost, id_host):
-		sql = "INSERT INTO puertos(id_hosts, puerto, estado, version, fecha) SELECT '%s', puerto, estado, version, fecha FROM puertos WHERE id_hosts = '%s';" % (id_host, id_previousHost)
+		sql = "INSERT INTO puertos(id_hosts, puerto, estado, version, fecha, scripts) SELECT '%s', puerto, estado, version, fecha, scripts FROM puertos WHERE id_hosts = '%s';" % (id_host, id_previousHost)
 		self.cur.execute(sql)
 		self.con.commit()
 		return self.cur.lastrowid

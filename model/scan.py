@@ -274,33 +274,47 @@ class Scan:
 
 	def __actualiceDB(self, hosts2scan_longFormat=None, ports2scan_longFormat=None): # example hosts2scan_longFormat=('192.168.1.50', '192.168.1.51', '192.168.1.52')
 		macs_up = [] # using later to know which hosts mac put down
+		# check what scan type was maded
+		hostsScanned = self.ck.checkAnyIs1(self.scanOptions4Hosts)
+		portsScanned = self.ck.checkAnyIs1(self.scanOptions4Ports)
 		# indicate how info will will be showed
-		if self.ck.checkAnyIs1(self.scanOptions4Ports) == 1:
+		if portsScanned == 1:
 			print 'Hosts IP: [open ports]'
 		for hostIP in self.nm.all_hosts():
 			# get host info
 			mac, os, portsUp = self.__getHostScannedInformation(hostIP)
-			# work with host mac
-			if mac == None:
-				print str(hostIP) + ": no mac info"
-			else:
-				if self.ck.checkAnyIs1(self.scanOptions4Hosts) == 1:
-					macs_up.append(mac)
+			# save scanned mac
+			macs_up = self.__addScannedMac(hostsScanned, hostIP, macs_up, mac)
 			# add host to hosts table (new hosts can be discovered)
 			self.__addDBUpHost(hostIP, mac, os)  # if the host is at the db, it is added again to know the last time it was scanned
 			# work with ports
-			if self.ck.checkAnyIs1(self.scanOptions4Ports) == 1:
-				# show scanned information
-				self.__printPortsScanned(hostIP, portsUp)
-				# actualice db for ports
-				self.__actualiceDBTablePuertos(mac, hostIP, portsUp, ports2scan_longFormat)
+			self.__actualiceDBports(portsScanned, mac, hostIP, ports2scan_longFormat, portsUp)
 		# add 'down' hosts at host table
-		if self.ck.checkAnyIs1(self.scanOptions4Hosts)==1:
-			# not add 'down' hosts at hosts table when ports are studied because not scanned ports (-> not host showed as up) do not mean the host is down
-			self.__addDBDownHosts(macs_up, hosts2scan_longFormat)
+		self.__actualiceDBdownHosts(hostsScanned, macs_up, hosts2scan_longFormat)
 		# indicate no ports were scanned when scanning ports
-		if self.nm.all_hosts() == [] and self.ck.checkAnyIs1(self.scanOptions4Ports)==1: # if all ports are closed then nm.all_hosts()=[] (empty)
+		if portsScanned ==1 and self.nm.all_hosts() == []: # if all ports are closed then nm.all_hosts()=[] (empty)
 			print 'No ports'
+
+	def __addScannedMac(self, hostsScanned, hostIP, macs_up, mac):
+		if mac == None:
+			print str(hostIP) + ": no mac info"
+		else:
+			if hostsScanned == 1:
+				macs_up.append(mac)
+		return macs_up
+
+	def __actualiceDBdownHosts(self, hostsScanned, macs_up, hosts2scan_longFormat):
+		# add 'down' hosts at host table
+		if hostsScanned==1:
+			# not add 'down' hosts at hosts table when ports are studied because not scanned ports (-> not host showed as up) does not mean the host is down
+			self.__addDBDownHosts(macs_up, hosts2scan_longFormat)
+
+	def __actualiceDBports(self, portsScanned, mac, hostIP, ports2scan_longFormat, portsUp):
+		if portsScanned == 1:
+			# show scanned information
+			self.__showPortsScanned(hostIP, portsUp)
+			# actualice db for ports
+			self.__actualiceDBTablePuertos(mac, hostIP, portsUp, ports2scan_longFormat)
 
 	# add new row with host up at hosts table
 	def __addDBUpHost(self, ip, mac, os=None):
@@ -332,23 +346,23 @@ class Scan:
 			# add 'closed' ports
 			self.__addDBclosedPorts(id_hostWithPorts, portsUp, ports2scan)
 
-	# add ports associated to this host (mac) but at the db are associated to an old id_host
-	# it is done only one time per id_host (at first time working with the id_host)
 	def __addDBLastIDhostPorts(self, hostWithPorts, actualHostID, mac):
-		# check if the actual id host has values. In order to add old ports only one time per host ID
-		check_idHost_with_portsValues = self.db.check_tablePuertosValues4ThisHostID(actualHostID)
-		if check_idHost_with_portsValues != 1:
+	# add ports associated to this host (mac) but at the db are associated to an old id_host
+	# it is done only one time per id_host (at the first time working with the id_host)
+		# check if the actual id host has port information at the DB. In order to add old ports only one time per host ID
+		check_idHost_with_DBportsValues = self.db.check_tablePuertosValues4ThisHostID(actualHostID)
+		if check_idHost_with_DBportsValues != 1:
 			# search the last ports information associated to this host (mac) at the table, search the maximum previous id of this host(mac) with port values
 			previousHostID = self.db.retrieve_previous_host_id(self.auditNumber, mac, actualHostID)
 			# ckeck if last id has values at table puertos
 			check_idPreviousHost_with_portsValues = self.db.check_tablePuertosValues4ThisHostID(previousHostID)
-			# search last id for this host (mac) with ports values
+			# search last id for this host (mac) with ports values (it is not necessarily the las ID because for the last ID maybe no ports were scanned)
 			while check_idPreviousHost_with_portsValues == -1 and previousHostID > 0:
 				previousHostID = self.db.retrieve_previous_host_id(self.auditNumber, mac, previousHostID)
 				check_idPreviousHost_with_portsValues = self.db.check_tablePuertosValues4ThisHostID(previousHostID)
 			# add previous id_host ports to the actual id_host
 			if check_idPreviousHost_with_portsValues == 1:
-				self.db.add_old_ports4host (previousHostID, actualHostID)
+				self.db.add_old_ports4host(previousHostID, actualHostID)
 
 	def __addDBnewPorts(self, id_hostWithPorts, ports, hostWithPorts):
 		# work with each port of the host
@@ -499,7 +513,7 @@ class Scan:
 				except:
 					print '- No info scanned'
 
-	def __printPortsScanned(self, hostWithPorts, ports, showAllInfo=0):
+	def __showPortsScanned(self, hostWithPorts, ports, showAllInfo=0):
 		if ports == None:
 			print str(hostWithPorts) + ": no ports info"
 		else:
