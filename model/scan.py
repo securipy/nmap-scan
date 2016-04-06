@@ -14,10 +14,12 @@ import sys, nmap, time, os.path
 sys.path.append('model')
 from database import Database
 from nmapscan import NmapScan
+from scan_DB import ScanDB
 from teco import color, style
 from utility2 import ChangeFormat, Check, Message
 from utility_ask import Ask
 from utility_calculatorIP import CalcIP
+from utility_export import UtilityExport
 from utility_network import NetworkUtility
 from utility_selectAuditAndRevision import SelectAuditRev
 import pprint
@@ -36,10 +38,12 @@ class Scan:
 		self.cIP = CalcIP()
 		self.ck = Check()
 		self.db = Database()
+		self.dbs = ScanDB()
+		self.ex = UtilityExport()
 		self.ms = Message()
 		self.nm = nmap.PortScanner()
 		self.nt = NetworkUtility()
-		self.save_path = 'modules/nmap-scan/model/ports' # save .txt files
+		self.save_path = 'modules/nmap-scan/model/exportedFiles' # where save .txt files
 		self.scanOptions = {'discovery':0, 'operatingSystem':0, 'versionORscript':0, 'custom':0, 'portsState':0} # what the user want to scan. Values: -1 (not used) or 1 (used)
 		self.scanCustomNotAllowedOptions = ['-iR'] # not allowed command at CustomParameters option
 
@@ -71,7 +75,7 @@ class Scan:
 	def discoverOS(self):
 		self.__initScan()
 		# ask for hosts ip to scan. Save hosts ip as nmap format (shortFormat) and as complete format (longFormat)
-		[hosts2scan_shortFormat, hosts2scan_longFormat] = self.ask.ask4hosts2scanOptions(self.auditNumber, self.revisionNumber, self.myIP)
+		[hosts2scan_shortFormat, hosts2scan_longFormat] = self.ask.ask4hosts2workOptions(self.auditNumber, self.revisionNumber, self.myIP)
 		# save ip to scan
 		if hosts2scan_shortFormat != -1 and hosts2scan_longFormat != -1:
 			# scan
@@ -90,7 +94,7 @@ class Scan:
 	def version(self):
 		self.__initScan()
 		# ask for hosts ip to scan
-		hosts2scan = self.ask.ask4hosts2scanOptions(self.auditNumber, self.revisionNumber, self.myIP)[0]
+		hosts2scan = self.ask.ask4hosts2workOptions(self.auditNumber, self.revisionNumber, self.myIP)[0]
 		if hosts2scan != -1:
 			# scan
 			self.__scanVersion(hosts2scan)
@@ -108,7 +112,7 @@ class Scan:
 	def script(self):
 		self.__initScan()
 		# ask for hosts ip to scan
-		hosts2scan = self.ask.ask4hosts2scanOptions(self.auditNumber, self.revisionNumber, self.myIP)[0]
+		hosts2scan = self.ask.ask4hosts2workOptions(self.auditNumber, self.revisionNumber, self.myIP)[0]
 		if hosts2scan != -1:
 			# scan
 			self.__scanScript(hosts2scan)
@@ -127,7 +131,7 @@ class Scan:
 	# introduce custom parameters
 		self.__initScan()
 		# ask for hosts ip to scan. Save hosts ip as nmap format (shortFormat) and as complete format (longFormat)
-		[hosts2scan_shortFormat, hosts2scan_longFormat] = self.ask.ask4hosts2scanOptions(self.auditNumber, self.revisionNumber, self.myIP)
+		[hosts2scan_shortFormat, hosts2scan_longFormat] = self.ask.ask4hosts2workOptions(self.auditNumber, self.revisionNumber, self.myIP)
 		if hosts2scan_shortFormat != -1 and hosts2scan_longFormat != -1:
 			# ask for parameters of the scan
 			parameters = self.ask.ask4parameters(self.scanCustomNotAllowedOptions)
@@ -151,7 +155,7 @@ class Scan:
 	# introduce hosts ip and ports to scan and check if ports are open or closed, not more information is saved
 		self.__initScan()
 		# ask for hosts ip to scan
-		hosts2scan_shortFormat = self.ask.ask4hosts2scanOptions(self.auditNumber, self.revisionNumber, self.myIP)[0]
+		hosts2scan_shortFormat = self.ask.ask4hosts2workOptions(self.auditNumber, self.revisionNumber, self.myIP)[0]
 		if hosts2scan_shortFormat != -1:
 			# ask ports to scan
 			[ports2scan_shortFormat, ports2scan_longFormat] = self.ask.ask4ports2search()
@@ -175,37 +179,19 @@ class Scan:
 		ports2File = self.ask.ask4ports2search()[1] # list of int numbers as strings, with all ports
 		if ports2File != None:
 			for port in ports2File:
-				hostsIPwithAPort = self.__checkDBandGetDB4hostsIPwithAPort(port)
-				if hostsIPwithAPort != -1: # port at database
-					self.__createFile(port, hostsIPwithAPort)
+				self.__createFile4port(port)
 
 	def allInfoHost(self):
-		print 'Coming soon'
-	# # create a .txt file or print at console the information associated to a host
-	# 	# check if a revision and audit were selected
-	# 	self.__check_audit_rev()
-	# 	# ask how to get the information
-	# 	modeHostInformation = self.ask.askOptionHostIPallInfo() # int
-	# 	hostsIP_shortFormat, hostsIP_longFormat = self.ask.askHostsIP()
-	# 	for hostIP in hostsIP_longFormat:
-	# 		hostsMac4IP = self.getMacs4IP(hostIP) # list of strings with hosts mac that have same IP. If only one mac it is a list of one string
-	# 		if len (hostsMac4IP) > 1:
-	# 			print '\nPlease, type again ports you want to scan'
-	# 		for hostMac in hostsMac4IP:
-	# 			hostAllInformation = self.__getHostAllInformationDB(hostMac, hostIP) # get only info of the mac with the indicated IP
-	# 			if modeHostInformation == 1: # export .txt file
-	# 				print 'Txt created'
-	# 			elif modeHostInformation == 2: # print info
-	# 				print hostAllInformation
-    #
-	# def __getHostAllInformationDB(self, hostMac, hostIP):
-	# 	line1 = 'Host Mac: ' + str(hostMac)
-	# 	line2 = 'Host IP: ' + str(hostIP)
-	# 	hostOS = ''
-	# 	openPorts = ''
-	# 	openPortsInfo = self.__getDBPortInfo()
-	# 	hostsInfo = line1 + '\n' + line2 + '\n'
-	# 	return hostsInfo
+		# create a .txt file or print at console the information associated to a host
+		# get my hosts IP
+		self.myIP = self.nt.getMyIP()
+		# check if a revision and audit were selected
+		self.__check_audit_rev()
+		# ask how to get the information
+		modeHostInformation = self.ask.askOptionAllInfoHost() # int
+		hostsIP_longFormat = self.ask.ask4hosts2workOptions(self.auditNumber, self.revisionNumber, self.myIP)[1]
+		for hostIP in hostsIP_longFormat:
+			self.__createFile4host(hostIP, modeHostInformation)
 
 	def calcIPbase(self):
 		self.cIP.askAndCalculate()
@@ -227,9 +213,10 @@ class Scan:
 		# as we see, with custom option all the information is saved
 
 	def __check_audit_rev(self):
-		if self.auditNumber == None and self.auditName == None:
+		# check if a revision and audit were selected and their names saved at self.auditName and self.revisionName
+		if self.auditNumber == None or self.auditName == None:
 			self.select_audit()
-		if self.revisionNumber == None and self.revisionName == None:
+		if self.revisionNumber == None or self.revisionName == None:
 			self.select_revision()
 
 	# add last revison's hosts if this is the first discovery for actual revision
@@ -331,18 +318,18 @@ class Scan:
 
 	# add new row with hosts down at hosts table
 	def __addDBDownHost(self, id_host):
-		down_host = self.db.retrieve_hostAllInfoByID(id_host)
-		os, status, id, rev, ip, date, mac = down_host[0]
+		down_hostInfo = self.db.retrieve_hostAllInfo_byID(id_host)
+		os, status, id, rev, ip, date, mac = down_hostInfo
 		self.db.add_host('down', self.revisionNumber, ip, mac)
 
-	def __actualiceDBTablePuertos(self, mac, hostWithPorts, portsUp, ports2scan):
+	def __actualiceDBTablePuertos(self, mac, hostIPwithPorts, portsUp, ports2scan):
 		# get id of the host (using mac) with we are working now
-		id_hostWithPorts = self.db.retrieve_host_id (self.auditNumber, self.revisionNumber, mac)
+		id_hostWithPorts = self.db.retrieve_host_id_withIP (self.auditNumber, self.revisionNumber, mac, hostIPwithPorts)
 		# add last ID host ports. One time for each host ID
-		self.__addDBLastIDhostPorts(hostWithPorts, id_hostWithPorts, mac)
+		self.__addDBLastIDhostPorts(hostIPwithPorts, id_hostWithPorts, mac)
 		if portsUp != None:
 			# add new information to puertos table
-			self.__addDBnewPorts(id_hostWithPorts, portsUp, hostWithPorts)
+			self.__addDBnewPorts(id_hostWithPorts, portsUp, hostIPwithPorts)
 			# add 'closed' ports
 			self.__addDBclosedPorts(id_hostWithPorts, portsUp, ports2scan)
 
@@ -479,7 +466,10 @@ class Scan:
 	def __getScannedPortInfo(self, ip, port, info):
 		# get the information indiciated of the port of a host
 		try:
-			return self.nm[ip]['tcp'][port][info] # name, state, etc: string. script: dictionary
+			info = self.nm[ip]['tcp'][port][info] # name, state, etc: string. script: dictionary
+			if info == '':
+				info = None
+			return info
 		except:
 			return None
 
@@ -494,7 +484,7 @@ class Scan:
 		if id_ports2putClosed != -1: # at the db are ports associated to a host
 			# work with each port
 			for id_port in id_ports2putClosed:
-				closed_port = self.db.retrieve_port_by_id (id_port)
+				closed_port = self.db.retrieve_portAllInfo_byPortID(id_port)
 				if closed_port != -1:
 					id_port, id_hosts_port, puerto_port, estado_port, version_port, fecha_port, scripts_port = closed_port[0]
 					self.db.add_port('closed', id_hostWithPorts, puerto_port, version_port, scripts_port)
@@ -541,15 +531,39 @@ class Scan:
 						portsOpen.append(port)
 				print str(hostWithPorts) + ' ' + str(portsOpen)
 
-	def __checkDBandGetDB4hostsIPwithAPort(self, port):
+	def __createFile4port(self, port):
+		hostsIPwithAport = self.__checkDBandGetHostsIPwithAport(port)
+		if hostsIPwithAport != -1:  # port at database
+			information2save = self.__getPortInfo2save(hostsIPwithAport, port)
+			self.ex.createFile(self.auditName, self.revisionName, self.save_path, port, information2save)
+		else:
+			print "Warning. Port %s not at database. No file has been created for this port." % port
+
+	def __getPortInfo2save(self, hostsIPwithAport, port):
+		if self.ck.checkListEmpty(hostsIPwithAport) == 1:
+			information2save = ''
+			print 'Warning. Port %s at database but port is closed or hosts are down \nFile will be created empty' % port
+		else:
+			information2save = self.__createPortInfo2save(hostsIPwithAport)
+		return information2save
+
+	def __createPortInfo2save(self, hostsIPwithAport):
+		# input list of strings
+		# output 'string'
+		info2save = ''
+		for ip in hostsIPwithAport:
+			info2save + ip + '\n'
+		return info2save
+
+	def __checkDBandGetHostsIPwithAport(self, port):
 		# port: string
 		# check if db has ports for this revision and return those hosts IP
 		if self.db.check_portAtDB(self.auditNumber, self.revisionNumber, port) != -1:
 			hostsIP = []
 			# get hosts IP that are up with this port open
-			hostsIPwithAPort = self.__getDBhostsIPwithAPort(port) # list of strings, example: [u'192.168.1.1', u'192.168.1.33']
-			if hostsIPwithAPort != -1:
-				for hostIP in hostsIPwithAPort:
+			hostsIPwithAport = self.__getDBhostsIPwithAport(port) # list of strings, example: [u'192.168.1.1', u'192.168.1.33']
+			if hostsIPwithAport != -1:
+				for hostIP in hostsIPwithAport:
 					if self.ck.checkStrIsInt(hostIP,0) == -1: # ip is formed by four numbers sepprated with dots, is not an int number
 						# convert to list of strings
 						hostsIP.append(hostIP)
@@ -557,10 +571,10 @@ class Scan:
 			else:
 				return -1
 		else:
-			print 'Port %s not at database for this revision' %port
+			self.ms.adviseNotInDB4revision('Port',port)
 			return -1
 
-	def __getDBhostsIPwithAPort(self, port):
+	def __getDBhostsIPwithAport(self, port):
 		hostsIP = []
 		idOfHostsUpWithPort = self.db.retrieve_idOfHostsUpWithAPort(port) # list of int numbers or only an int number
 		if self.ck.checkStrIsInt(idOfHostsUpWithPort,0) == 1:
@@ -568,31 +582,43 @@ class Scan:
 			listAuxiliar.append(idOfHostsUpWithPort)
 			idOfHostsUpWithPort = listAuxiliar
 		for idHost in idOfHostsUpWithPort:
-			lastIDport = self.db.retrieve_idOfLastPort4anIdHost(idHost, port)
+			lastIDport = self.db.retrieve_portLastIDbyHostIDandPort(idHost, port)
 			hostIP = self.db.retrieve_hostIP4portID(self.auditNumber, self.revisionNumber, lastIDport)
 			hostsIP.append(hostIP) # list
 		hostsIP = list(set(hostsIP)) # remove hosts IP repeated
 		return hostsIP # example: [u'192.168.1.2', u'192.168.1.3']
 
-	def __createFile(self, port, hostsIPwithAPort):
-		auditName = self.db.retrieve_auditName(self.auditNumber)
-		revisionName = self.db.retrieve_revisionName(self.auditNumber, self.revisionNumber)
-		fileName = auditName + '_' + revisionName + '_' + port + '.txt'
-		filePathAndName = os.path.join(self.save_path, fileName)
-		if self.ck.checkFileExists(filePathAndName) == 1:
-			if self.ask.askOverwriteFile(port) == -1:
-				fileName = auditName + '_' + revisionName + '_' + port + '_' + self.__getDatetime() + '.txt'
-				filePathAndName = os.path.join(self.save_path, fileName)
-		file = open(filePathAndName,'w')
-		for ip in hostsIPwithAPort:
-			file.write(ip + '\n')
-		file.close()
-		if self.ck.checkListEmpty(hostsIPwithAPort) != -1:
-			print 'Port %s at database but port is closed or hosts are down \nFile created empty' %port
-		print 'File created: ' + fileName
+	def __createFile4host(self, hostIP, modeHostInformation):
+		hostsMac4IP = self.db.retrieve_hostsMac_byIP(self.auditNumber, self.revisionNumber, hostIP) # list of strings with hosts mac that have same IP. If only one mac it is a list of one string
+		if hostsMac4IP != -1:
+			ipWithSeveralMacs = self.__checkIPwithSeveralMacs(hostIP, hostsMac4IP)
+			for hostMac in hostsMac4IP:
+				hostAllInformation = self.dbs.getHostAllInformationDB(self.auditNumber, self.revisionNumber, hostMac, hostIP) # get only info of the mac with the indicated IP
+				if modeHostInformation == 1: # export .txt file
+					fileName = self.__fileNameAllInfoHost(hostIP, hostMac, ipWithSeveralMacs)
+					self.ex.createFile(self.auditName, self.revisionName, self.save_path, fileName, hostAllInformation)
+				elif modeHostInformation == 2: # print info
+					print '\n' + hostAllInformation
+		else:
+			self.ms.adviseNotInDB4revision('Host IP', hostIP)
 
-	def __getDatetime(self):
-		time2 = time.strftime("%H-%M-%S")
-		date = time.strftime("%Y-%m-%d")
-		datetime = '%s_%s' %(date, time2)
-		return datetime
+	def __checkIPwithSeveralMacs(self, hostIP, hostsMac4IP):
+		if len(hostsMac4IP) > 1:
+			self.__showHostsMac4IP(hostIP, hostsMac4IP)
+			return 1
+		else:
+			return -1
+
+	def __fileNameAllInfoHost(self, hostIP, hostMac, ipWithSeveralMacs):
+		if ipWithSeveralMacs == 1:
+			fileName = hostIP + '_' + hostMac
+		else:
+			fileName = hostIP
+		return fileName
+
+	def __showHostsMac4IP(self, hostIP, hostsMac4IP):
+		print 'Warning. More than one host with same IP'
+		print '%s:' %hostIP
+		for hostMac in hostsMac4IP:
+			print '- %s' %hostMac
+		print "Working with each host's mac"
