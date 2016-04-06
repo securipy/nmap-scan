@@ -1,6 +1,8 @@
 #!/usr/bin/python
 #-*-coding:utf-8-*-
 
+"""This script works directly with the database"""
+
 import sqlite3
 from utility2 import ChangeFormat
 
@@ -244,12 +246,12 @@ class Database:
 
 
 	# def update_host_estadoANDfecha(self, state, id_rev, mac):
-	# 	sql = "UPDATE hosts SET estado = '%s', fecha = CURRENT_TIMESTAMP WHERE id_revision = '%s' and mac = '%s'" % (state, id_rev, mac)
+	# 	sql = "UPDATE hosts SET estado = '%s', fecha = CURRENT_TIMESTAMP WHERE id_revision = '%s' AND mac = '%s'" % (state, id_rev, mac)
 	# 	self.cur.execute(sql)
 	# 	self.con.commit()
 
 	# def hosts_now_down(self, id_audit, id_rev): # M
-	# 	sql = "select * from hosts where mac in (select mac from hosts where id_revision = (select id from revision where id in (select max(id) from revision where id_auditorias = '%s' and id != '%s'))) and mac not in (select mac from hosts where id_revision = '%s') AND id_revision=(select id from revision where id in (select max(id) from revision where id_auditorias = '%s' and id != '%s'))" % (id_audit, id_rev, id_rev, id_audit, id_rev)
+	# 	sql = "select * from hosts where mac IN (select mac from hosts where id_revision = (select id from revision where id IN (select max(id) from revision where id_auditorias = '%s' AND id != '%s'))) AND mac not IN (select mac from hosts where id_revision = '%s') AND id_revision=(select id from revision where id IN (select max(id) from revision where id_auditorias = '%s' AND id != '%s'))" % (id_audit, id_rev, id_rev, id_audit, id_rev)
 	# 	if self.cur.execute(sql) > 0:
 	# 		return self.cur.fetchall()
 	# 	else:
@@ -270,7 +272,7 @@ class Database:
 		if len(hostsIPup) == 1:
 			hostsIPup = hostsIPup+hostsIPup
 		# takes max id of the hosts with same mac (mac different than macsUp introduced) that are up at the db for this revision
-		sql="SELECT id FROM hosts WHERE ip IN " + str(hosts2scan) + " AND (ip NOT in " + str(hostsIPup) + " OR mac NOT IN " + str(macsUp) + ") AND estado = 'up' AND id_revision = (SELECT id FROM revision WHERE id = '%s' AND id_auditorias = '%s') AND (id IN (SELECT id FROM (SELECT id, COUNT(*) AS c FROM hosts GROUP BY mac HAVING c>=1)) OR id IN (SELECT id FROM (SELECT id, COUNT(*) AS c FROM hosts GROUP BY ip HAVING c>=1)) );"  % (id_rev, id_audit) # COUNT... -> not add again a row as down if the last state is down
+		sql="SELECT id FROM hosts WHERE ip IN " + str(hosts2scan) + " AND (ip NOT IN " + str(hostsIPup) + " OR mac NOT IN " + str(macsUp) + ") AND estado = 'up' AND id_revision = (SELECT id FROM revision WHERE id = '%s' AND id_auditorias = '%s') AND (id IN (SELECT id FROM (SELECT id, COUNT(*) AS c FROM hosts GROUP BY mac HAVING c>=1)) OR id IN (SELECT id FROM (SELECT id, COUNT(*) AS c FROM hosts GROUP BY ip HAVING c>=1)) );"  % (id_rev, id_audit) # COUNT... -> not add again a row as down if the last state is down
 		if self.cur.execute(sql) > 0:
 			id_hosts = self.cur.fetchall()
 			if id_hosts == []: # at the table there are no values
@@ -314,21 +316,24 @@ class Database:
 		else:
 			return -1
 
+	# Retrieve host operating system by host_id
+
 
 	# Retrieve all host information by host id
-	def retrieve_hostAllInfoByID(self, id_host):
+	def retrieve_hostAllInfo_byID(self, id_host):
 		sql = "SELECT * FROM hosts WHERE id = '%s';" % id_host
 		if self.cur.execute(sql) > 0:
-			row_db = self.cur.fetchall()
+			row_db = self.cur.fetchall() # list  of tuple of strigs, example [(u'None', u'up', 1, 1, u'192.168.1.1', u'2016-04-05 17:59:40', u'xx:xx:xx:xx:xx:xx')]
 			if row_db != []:
-				return row_db    # return self.cur.fetchall() returns []
+				return row_db[0] # tuple of strings, example (u'None', u'up', 1, 1, u'192.168.1.1', u'2016-04-05 17:59:40', u'xx:xx:xx:xx:xx:xx')
+				# return self.cur.fetchall() returns []
 			else:
 				return -1
 		else:
 			return -1
 
 	# Retrieve hosts ip of the indicated revision
-	def retrieve_hosts_ip_by_revision(self, id_audit, id_rev):
+	def retrieve_hostsIP_byRevision(self, id_audit, id_rev):
 		# use all hosts scanned, if now are down too in order to use all the information saved
 		sql = "SELECT DISTINCT ip FROM hosts WHERE id_revision = (SELECT id FROM revision WHERE id = '%s' AND id_auditorias = '%s');" % (id_rev, id_audit)
 		# distinct: avoid repeated ip
@@ -343,13 +348,16 @@ class Database:
 		else:
 			return -1
 
-	# Retrieve port by id
-	def retrieve_port_by_id(self, id_port):
-		sql = "SELECT * FROM puertos WHERE id = '%s';" % id_port
+	# Retrieve hosts mac with the indicated host IP
+	def retrieve_hostsMac_byIP(self, id_audit, id_rev, ip):
+		sql = "SELECT DISTINCT mac FROM hosts WHERE id_revision = (SELECT id FROM revision WHERE id = '%s' AND id_auditorias = '%s') AND ip = '%s';" % (id_rev, id_audit, ip)
+		# distinct: avoid repeated ip
 		if self.cur.execute(sql) > 0:
-			row_db = self.cur.fetchall()
-			if row_db != []:
-				return row_db    # return self.cur.fetchall() returns []
+			hostsMac = self.cur.fetchall() # list of tuples, example: hostsMac=[(u'xx:xx:xx:xx:xx:xx',), (u'yy:yy:yy:yy:yy:yy',), (u'zz:zz:zz:zz:zz:zz',)]
+			if hostsMac != []:
+				for i in range(len(hostsMac)):
+					hostsMac[i] = str(hostsMac[i][0])
+				return hostsMac  # type list # return self.cur.fetchall() returns []. # list of strings, example:  ['xx:xx:xx:xx:xx:xx', 'yy:yy:yy:yy:yy:yy', 'zz:zz:zz:zz:zz:zz']
 			else:
 				return -1
 		else:
@@ -392,14 +400,27 @@ class Database:
 		else:
 			return -1
 
-	# Retrieve id_host by audit, revision and ip from hosts table (more actual host at host table)
-	def retrieve_host_id(self, id_audit, id_rev, mac):
-		sql = "SELECT MAX(id) FROM hosts WHERE mac = '%s' and id_revision = (SELECT id FROM revision WHERE id = '%s' AND id_auditorias = '%s');" % (mac, id_rev, id_audit)
+	# Retrieve last id_host by audit, revision, mac and ip from hosts table (more actual host at host table)
+	def retrieve_host_id_withIP(self, id_audit, id_rev, mac, ip):
+		sql = "SELECT MAX(id) FROM hosts WHERE mac = '%s' AND ip = '%s' AND id_revision = (SELECT id FROM revision WHERE id = '%s' AND id_auditorias = '%s');" % (mac, ip, id_rev, id_audit)
 		if self.cur.execute(sql) > 0:
 			host_id = self.cur.fetchall()
 			if host_id != [(None,)]:
 				host_id = self.cf.eliminateTuplesAtList(host_id) # example: id_hostWithPorts = [(20,)] -> 20
 				return host_id
+			else:
+				return -1
+		else:
+			return -1
+
+	# Retrieve all port information by port id
+	def retrieve_portAllInfo_byPortID(self, id_port):
+		sql = "SELECT * FROM puertos WHERE id = '%s';" % id_port
+		if self.cur.execute(sql) > 0:
+			row_db = self.cur.fetchall() # list  of tuple of strigs, example [(10, 5, 80, u'open', u'product:  \nversion:  \nname: tcpwrapped \nextrainfo: ', u'2016-04-05 23:17:51', u'None')]
+			if row_db != []:
+				return row_db[0]  # tuple of strings, example (10, 5, 80, u'open', u'product:  \nversion:  \nname: tcpwrapped \nextrainfo: ', u'2016-04-05 23:17:51', u'None')
+				# return self.cur.fetchall() returns []
 			else:
 				return -1
 		else:
@@ -417,13 +438,29 @@ class Database:
 		else:
 			return -1
 
+	# retrieve ports ID if they are open ports for ports id
+	def retrieve_portsOpenID_byPortID(self, portsID):
+		if len(portsID)==1:
+			portsID = portsID+portsID    # avoid tuple to end with coma
+		sql = "SELECT id FROM puertos WHERE id IN " + str(portsID) + " AND estado = 'open';"
+		# distinct: avoid repeated information
+		if self.cur.execute(sql) > 0:
+			puertos = self.cur.fetchall()  # list of tuples with an integer. Example [(10,), (11,), (12,), (13,)]
+			if puertos != []:
+				return puertos
+			else:
+				return -1
+		else:
+			return -1
+
 	# retrieve ports associated to a host id
 	def retrieve_ports(self, id_host):
-		sql = "SELECT puerto FROM puertos WHERE id_hosts = '%s';" % id_host
+		sql = "SELECT DISTINCT puerto FROM puertos WHERE id_hosts = '%s';" % id_host
+		# distinct: avoid repeated information
 		if self.cur.execute(sql) > 0:
-			puerto = self.cur.fetchall()
-			if puerto != []:
-				return puerto
+			puertos = self.cur.fetchall() # list of tuples with an integer. Example [(80,), (21,), (22,), (23,)]
+			if puertos != []:
+				return puertos
 			else:
 				return -1
 		else:
@@ -443,8 +480,8 @@ class Database:
 		else:
 			return -1
 
-	# Get last id of a port for a host. Example: for the same host a port is first open and at the end closed (different rows), with this function we only work with last sate, closed in this example
-	def retrieve_idOfLastPort4anIdHost (self, id_host, port):
+	# Get last id of a port for a host. Example: for the same host a port is first open and at the end closed (different rows), with this function we only work with last state, closed in this example
+	def retrieve_portLastIDbyHostIDandPort (self, id_host, port):
 		sql = "SELECT MAX(id) FROM puertos WHERE id_hosts='%s' AND puerto = '%s';" %(id_host, port)
 		if self.cur.execute(sql) > 0:
 			id_port = self.cur.fetchall() # lists of one tuple, example: [(18,)]
@@ -480,7 +517,7 @@ class Database:
 
 	# Update port state
 	def update_port_estadoANDfecha(self, state, id_host, port):
-		sql = "UPDATE puertos SET estado = '%s', fecha = CURRENT_TIMESTAMP WHERE id_hosts = '%s' and puerto = '%s';" % (state, id_host, port)
+		sql = "UPDATE puertos SET estado = '%s', fecha = CURRENT_TIMESTAMP WHERE id_hosts = '%s' AND puerto = '%s';" % (state, id_host, port)
 		self.cur.execute(sql)
 		self.con.commit()
 

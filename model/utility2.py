@@ -152,6 +152,10 @@ class ChangeFormat:
         stringFinal = rmCh3.replace("'", "")
         return stringFinal
 
+    def eliminateIndicatedCharacters(self, string2change, what2eliminate):
+        newString = string2change.replace(what2eliminate,"")
+        return newString
+
     def convertString2Int (self,string2convert):
         # input: type string
         # output: type int
@@ -203,16 +207,20 @@ class ChangeFormat:
         str = self.eliminateCharacters(str)
         return str
 
-    def eliminateTuplesAtList(self, listTuples):
-        # example 1, list of one tuple: [(13,)] -> 13
+    def eliminateTuplesAtList(self, listTuples, returnAlwaysList=-1):
+        # output: int or list of integers
+        # example 1, list of one tuple: [(13,)] -> 13 (if returnAlwaysList = -1)
         # example 2, list of tuples: [(13,), (13,), (14,)] -> [13, 13, 14]
-        if len(listTuples) == 1:
-            return listTuples[0][0]
+        if listTuples == -1:
+            return -1
         else:
-            listInt = []
-            for tuple in listTuples:
-                listInt.append(tuple[0])
-            return listInt
+            if len(listTuples) == 1 and returnAlwaysList == -1:
+                return listTuples[0][0]
+            else:
+                listInt = []
+                for tuple in listTuples:
+                    listInt.append(tuple[0])
+                return listInt
 
     def eliminateMyIPInAList(self, hosts2scan_longFormat, myIP):
         # hosts2scan: list of strings of IP at complete format
@@ -224,6 +232,16 @@ class ChangeFormat:
         if myIP in hosts2scan_longFormat:
             hosts2scan_longFormat.remove(myIP)
         return hosts2scan_longFormat
+
+    def addIndentation(self, string2change, indentationSymbol):
+        # add indentation with - in each new line
+        # input:
+        # - string2change: string
+        # - indentationSymbol: string
+        # output: string
+        stringChanged = string2change.replace('\n', '\n'+indentationSymbol+' ')  # each line stars with -
+        stringChanged = '\n'+indentationSymbol+' '+stringChanged  # first line stars with -
+        return stringChanged
 
 
 class Check:
@@ -335,3 +353,13 @@ class Message:
 
     def adviseInvalidSyntax(self):
         print color('rojo', 'Invalid syntax \n')
+
+    def adviseNotInDB4revision(self, whatNotInDB, moreInfo=None):
+        if moreInfo != None:
+            print color('rojo', '%s %s not at database for this revision\n' %(whatNotInDB, moreInfo))
+        else:
+            print color('rojo', '%s not at database for this revision\n' %whatNotInDB)
+
+    def adviseFileCreated(self, fileName):
+        # input: fileName type string
+        print 'File created: ' + fileName

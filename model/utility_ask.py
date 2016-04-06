@@ -48,28 +48,32 @@ class Ask:
 			number = self.cf.convertString2Int(number)
 		return number
 
-	def ask4hosts2scanOptions(self, auditNumber, revisionNumber, myIP):
+	def ask4hosts2workOptions(self, auditNumber, revisionNumber, myIP):
 		# get ip to scan
-		print color('bcyan', 'Select IP to scan')
-		print color('cyan', '1. IP discovered \n2. Specify IP')
-		option2scan= ''
-		while option2scan != 1 and option2scan != 2:
-			option2scan = self.ask4number()
+		option2scan = self.ask4hostsOption()
 		if option2scan == 1:
 			# check if the discovery option was maded for this revision
 			discoveryDone = self.db.check_tableHostsValues4ThisRevision(auditNumber, revisionNumber) # check values at hosts table for this revision
 			if discoveryDone == 1:
 				# scan all discovered hosts, down hosts too because they can change to up
-				hosts2scan_longFormat = self.db.retrieve_hosts_ip_by_revision(auditNumber, revisionNumber)
+				hosts2scan_longFormat = self.db.retrieve_hostsIP_byRevision(auditNumber, revisionNumber)
 				hosts2scan_shortFormat, hosts2scan_longFormat = self.cf.getShortLongFormatFromLongFormat(hosts2scan_longFormat, myIP)
-				print "Hosts to scan: " + str(hosts2scan_longFormat)
-				print "Number of hosts to scan: " + str(len(hosts2scan_longFormat))
+				print "Hosts: " + str(hosts2scan_longFormat)
+				print "Number of hosts: " + str(len(hosts2scan_longFormat))
 			else:
 				print color('rojo', 'No hosts ip discovered for this revision')
 				hosts2scan_shortFormat, hosts2scan_longFormat = self.askHostsIP(myIP)
 		elif option2scan == 2:
 			hosts2scan_shortFormat, hosts2scan_longFormat = self.askHostsIP(myIP)
 		return [hosts2scan_shortFormat, hosts2scan_longFormat] # -hosts2scan_shortFormat example: '192.168.1.1,2' -hosts2scan_longFormat example ('192.168.1.1','192.168.1.2')
+
+	def ask4hostsOption(self):
+		print color('bcyan', 'Select IP')
+		print color('cyan', '1. IP discovered \n2. Specify IP')
+		option2scan = ''
+		while option2scan != 1 and option2scan != 2:
+			option2scan = self.ask4number()
+		return option2scan
 
 	def askHostsIP(self, myIP):
 		hostsIP_shortFormat=''
@@ -107,15 +111,15 @@ class Ask:
 			ports2search_listOfStrings = self.cf.convertSring2ListWitchAllValues(ports2search) # example ['20', '21', '22, '80']
 			return [por2search_string, ports2search_listOfStrings]
 
-	def askOptionHostIPallInfo(self):
+	def askOptionAllInfoHost(self):
 		print 'Export information in a .txt file (1) or show in window (2)?'
 		mode = ""
 		while mode != 1 and mode != 2:
 			mode = self.ask4number()
 		return mode
 
-	def askOverwriteFile(self, port):
-		print color('rojo', 'File for port ' +str(port)+ ' already exists')
+	def askOverwriteFile(self, fileName):
+		print color('rojo', 'File ' +str(fileName)+ ' already exists')
 		print color('cyan', 'Options:\n1.Overwrite \n2.New file')
 		fileOptions = ''
 		while fileOptions!=1 and fileOptions!=2:
