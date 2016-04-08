@@ -388,7 +388,7 @@ class Database:
 	# 		return -1
 
 	# Retrieve previous host ID associated to a mac for this audit (information can come from previous revision). Previous to the actual host ID
-	def retrieve_previous_host_id(self, id_audit, mac, actualID):
+	def retrieve_previousHostID(self, id_audit, mac, actualID):
 		sql = "SELECT MAX(id) FROM hosts WHERE (id < '%s' AND mac = '%s' AND id_revision IN (SELECT id FROM revision WHERE id_auditorias = '%s'));" % (actualID, mac, id_audit)
 		if self.cur.execute(sql) > 0:
 			previousID = self.cur.fetchall()

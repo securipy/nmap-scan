@@ -22,21 +22,31 @@ class NetworkUtility:
 		self.ck = Check()
 
 	def getMyIP(self):
+		# IP form wireless interface
 		myHostIP = socket.gethostbyname(socket.gethostname())
-		if self.ck.checkIPstartsWith127(myHostIP) == -1:
-			myHostIP = self.getInterfaceIP('eth0') # required at wired connections, because the last option get another interface IP
+		if self.ck.checkIPstartsWith127(myHostIP) == -1: # no wireless interface is used
+			try:
+				myHostIP = self.getInterfaceIP('eth0') # IP from wired interface
+			except:	# none network interface is used
+				myHostIP = None
 		return myHostIP
 
 	def getInterfaceIP(self, interface):
 	# get IP address of the indicated interface
 	# https://stackoverflow.com/questions/24196932/how-can-i-get-the-ip-address-of-eth0-in-python
-	    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-	    return socket.inet_ntoa(fcntl.ioctl(
-	        s.fileno(),
-	        0x8915,  # SIOCGIFADDR
-	        struct.pack('256s', interface[:15])
-	    )[20:24])
+		s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+		return socket.inet_ntoa(fcntl.ioctl(
+			s.fileno(),
+			0x8915,  # SIOCGIFADDR
+			struct.pack('256s', interface[:15])
+		)[20:24])
 
 	def checkNetworkConnection(self, myIP):
-		if self.ck.checkIPstartsWith127(myIP) == -1:
+		if myIP == None:
+			print color('rojo', "\nYou haven't got network connection\n")
+			return -1
+		elif self.ck.checkIPstartsWith127(myIP) == -1:
 			print color('rojo', 'Are you sure you have network connection?')
+			return 1
+		else:
+			return 1

@@ -55,121 +55,121 @@ class Scan:
 		self.auditNumber, self.auditName, self.revisionNumber, self.revisionName = self.ar.selectRevision(self.auditNumber, self.auditName)
 
 	def discovery(self):
-		self.__initScan()
-		# ask for hosts ip to scan. Save hosts ip as nmap format (shortFormat) and as complete format (longFormat)
-		hosts2scan_shortFormat, hosts2scan_longFormat = self.ask.askHostsIP(self.myIP)
-		if hosts2scan_longFormat != -1:
-			# scan
-			self.__scanDiscovery(hosts2scan_shortFormat)
-			# indicate option
-			self.scanOptions['discovery']=1
-			self.__actualiceOptions()
-			# show ip of hosts up
-			self.__showHostsIPscannedUp()
-			# actualice database
-			self.__actualiceDB(hosts2scan_longFormat)
-			# clear option
-			self.scanOptions['discovery']=0
-			self.__actualiceOptions()
+		if self.__initScan() == 1:
+			# ask for hosts ip to scan. Save hosts ip as nmap format (shortFormat) and as complete format (longFormat)
+			hosts2scan_shortFormat, hosts2scan_longFormat = self.ask.askHostsIP(self.myIP)
+			if hosts2scan_longFormat != -1:
+				# scan
+				self.__scanDiscovery(hosts2scan_shortFormat)
+				# indicate option
+				self.scanOptions['discovery']=1
+				self.__actualiceOptions()
+				# show ip of hosts up
+				self.__showHostsIPscannedUp()
+				# actualice database
+				self.__actualiceDB(hosts2scan_longFormat)
+				# clear option
+				self.scanOptions['discovery']=0
+				self.__actualiceOptions()
 
 	def discoverOS(self):
-		self.__initScan()
-		# ask for hosts ip to scan. Save hosts ip as nmap format (shortFormat) and as complete format (longFormat)
-		[hosts2scan_shortFormat, hosts2scan_longFormat] = self.ask.ask4hosts2workOptions(self.auditNumber, self.revisionNumber, self.myIP)
-		# save ip to scan
-		if hosts2scan_shortFormat != -1 and hosts2scan_longFormat != -1:
-			# scan
-			self.__scanDiscoverOS(hosts2scan_shortFormat)
-			# indicate option
-			self.scanOptions['operatingSystem']=1
-			self.__actualiceOptions()
-			# show ip of hosts scanned
-			self.__showHostsIPscannedUp()
-			# actualice database
-			self.__actualiceDB(hosts2scan_longFormat)
-			# clear option
-			self.scanOptions['operatingSystem']=0
-			self.__actualiceOptions()
+		if self.__initScan() == 1:
+			# ask for hosts ip to scan. Save hosts ip as nmap format (shortFormat) and as complete format (longFormat)
+			[hosts2scan_shortFormat, hosts2scan_longFormat] = self.ask.ask4hosts2workOptions(self.auditNumber, self.revisionNumber, self.myIP)
+			# save ip to scan
+			if hosts2scan_shortFormat != -1 and hosts2scan_longFormat != -1:
+				# scan
+				self.__scanDiscoverOS(hosts2scan_shortFormat)
+				# indicate option
+				self.scanOptions['operatingSystem']=1
+				self.__actualiceOptions()
+				# show ip of hosts scanned
+				self.__showHostsIPscannedUp()
+				# actualice database
+				self.__actualiceDB(hosts2scan_longFormat)
+				# clear option
+				self.scanOptions['operatingSystem']=0
+				self.__actualiceOptions()
 
 	def version(self):
-		self.__initScan()
-		# ask for hosts ip to scan
-		hosts2scan = self.ask.ask4hosts2workOptions(self.auditNumber, self.revisionNumber, self.myIP)[0]
-		if hosts2scan != -1:
-			# scan
-			self.__scanVersion(hosts2scan)
-			# indicate option
-			self.scanOptions['versionORscript']=1
-			self.__actualiceOptions()
-			# show ip of hosts up
-			self.__showHostsIPscannedUp()
-			# actualice database
-			self.__actualiceDB()
-			# clear option
-			self.scanOptions['versionORscript']=0
-			self.__actualiceOptions()
+		if self.__initScan() == 1:
+			# ask for hosts ip to scan
+			hosts2scan = self.ask.ask4hosts2workOptions(self.auditNumber, self.revisionNumber, self.myIP)[0]
+			if hosts2scan != -1:
+				# scan
+				self.__scanVersion(hosts2scan)
+				# indicate option
+				self.scanOptions['versionORscript']=1
+				self.__actualiceOptions()
+				# show ip of hosts up
+				self.__showHostsIPscannedUp()
+				# actualice database
+				self.__actualiceDB()
+				# clear option
+				self.scanOptions['versionORscript']=0
+				self.__actualiceOptions()
 
 	def script(self):
-		self.__initScan()
-		# ask for hosts ip to scan
-		hosts2scan = self.ask.ask4hosts2workOptions(self.auditNumber, self.revisionNumber, self.myIP)[0]
-		if hosts2scan != -1:
-			# scan
-			self.__scanScript(hosts2scan)
-			# indicate option
-			self.scanOptions['versionORscript']=1
-			self.__actualiceOptions()
-			# show ip of hosts up
-			self.__showHostsIPscannedUp()
-			# actualice database
-			self.__actualiceDB()
-			# clear option
-			self.scanOptions['versionORscript']=0
-			self.__actualiceOptions()
+		if self.__initScan() == 1:
+			# ask for hosts ip to scan
+			hosts2scan = self.ask.ask4hosts2workOptions(self.auditNumber, self.revisionNumber, self.myIP)[0]
+			if hosts2scan != -1:
+				# scan
+				self.__scanScript(hosts2scan)
+				# indicate option
+				self.scanOptions['versionORscript']=1
+				self.__actualiceOptions()
+				# show ip of hosts up
+				self.__showHostsIPscannedUp()
+				# actualice database
+				self.__actualiceDB()
+				# clear option
+				self.scanOptions['versionORscript']=0
+				self.__actualiceOptions()
 
 	def CustomParameters(self):
 	# introduce custom parameters
-		self.__initScan()
-		# ask for hosts ip to scan. Save hosts ip as nmap format (shortFormat) and as complete format (longFormat)
-		[hosts2scan_shortFormat, hosts2scan_longFormat] = self.ask.ask4hosts2workOptions(self.auditNumber, self.revisionNumber, self.myIP)
-		if hosts2scan_shortFormat != -1 and hosts2scan_longFormat != -1:
-			# ask for parameters of the scan
-			parameters = self.ask.ask4parameters(self.scanCustomNotAllowedOptions)
-			# necessary save ports to scan
-			print '\nPlease, type again ports you want to scan'
-			ports2scan_longFormat = self.ask.ask4ports2search()[1]
-			# scan
-			self.__scanCustomParameters(hosts2scan_shortFormat, parameters)
-			# indicate options
-			self.scanOptions['custom']=1
-			self.__actualiceOptions()
-			# show ip of hosts up
-			self.__showHostsIPscannedUp()
-			# actualice database. In CustomParameters all the information is saved
-			self.__actualiceDB(hosts2scan_longFormat, ports2scan_longFormat)
-			# clear option
-			self.scanOptions['custom']=0
-			self.__actualiceOptions()
+		if self.__initScan() == 1:
+			# ask for hosts ip to scan. Save hosts ip as nmap format (shortFormat) and as complete format (longFormat)
+			[hosts2scan_shortFormat, hosts2scan_longFormat] = self.ask.ask4hosts2workOptions(self.auditNumber, self.revisionNumber, self.myIP)
+			if hosts2scan_shortFormat != -1 and hosts2scan_longFormat != -1:
+				# ask for parameters of the scan
+				parameters = self.ask.ask4parameters(self.scanCustomNotAllowedOptions)
+				# necessary save ports to scan
+				print '\nPlease, type again ports you want to scan'
+				ports2scan_longFormat = self.ask.ask4ports2search()[1]
+				# scan
+				self.__scanCustomParameters(hosts2scan_shortFormat, parameters)
+				# indicate options
+				self.scanOptions['custom']=1
+				self.__actualiceOptions()
+				# show ip of hosts up
+				self.__showHostsIPscannedUp()
+				# actualice database. In CustomParameters all the information is saved
+				self.__actualiceDB(hosts2scan_longFormat, ports2scan_longFormat)
+				# clear option
+				self.scanOptions['custom']=0
+				self.__actualiceOptions()
 
 	def puertos(self):
 	# introduce hosts ip and ports to scan and check if ports are open or closed, not more information is saved
-		self.__initScan()
-		# ask for hosts ip to scan
-		hosts2scan_shortFormat = self.ask.ask4hosts2workOptions(self.auditNumber, self.revisionNumber, self.myIP)[0]
-		if hosts2scan_shortFormat != -1:
-			# ask ports to scan
-			[ports2scan_shortFormat, ports2scan_longFormat] = self.ask.ask4ports2search()
-			if ports2scan_shortFormat != None:
-				# scan
-				self.__scanPorts(hosts2scan_shortFormat, ports2scan_shortFormat)
-				# indicate options
-				self.scanOptions['portsState']=1
-				self.__actualiceOptions()
-				# actualice database
-				self.__actualiceDB(None, ports2scan_longFormat)
-				# clear options
-				self.scanOptions['portsState']=0
-				self.__actualiceOptions()
+		if self.__initScan() == 1:
+			# ask for hosts ip to scan
+			hosts2scan_shortFormat = self.ask.ask4hosts2workOptions(self.auditNumber, self.revisionNumber, self.myIP)[0]
+			if hosts2scan_shortFormat != -1:
+				# ask ports to scan
+				[ports2scan_shortFormat, ports2scan_longFormat] = self.ask.ask4ports2search()
+				if ports2scan_shortFormat != None:
+					# scan
+					self.__scanPorts(hosts2scan_shortFormat, ports2scan_shortFormat)
+					# indicate options
+					self.scanOptions['portsState']=1
+					self.__actualiceOptions()
+					# actualice database
+					self.__actualiceDB(None, ports2scan_longFormat)
+					# clear options
+					self.scanOptions['portsState']=0
+					self.__actualiceOptions()
 
 	def portsFile(self):
 	# create a .txt file, one per port indicated, with hosts IP up with those ports open
@@ -200,11 +200,13 @@ class Scan:
 		# get my hosts IP
 		self.myIP = self.nt.getMyIP()
 		# check if you have network connection
-		self.nt.checkNetworkConnection(self.myIP)
-		# check if a revision and audit were selected
-		self.__check_audit_rev()
-		# add last revison hosts (once per revision)
-		self.__addDBlastRevisionHosts()
+		networkConnection = self.nt.checkNetworkConnection(self.myIP)
+		if networkConnection == 1:
+			# check if a revision and audit were selected
+			self.__check_audit_rev()
+			return 1
+		else:
+			return -1
 
 	def __actualiceOptions(self):
 		# know type of scan
@@ -264,6 +266,8 @@ class Scan:
 		# check what scan type was maded
 		hostsScanned = self.ck.checkAnyIs1(self.scanOptions4Hosts)
 		portsScanned = self.ck.checkAnyIs1(self.scanOptions4Ports)
+		# add last revison hosts (once per revision)
+		self.__addDBlastRevisionHosts()
 		# indicate how info will will be showed
 		if portsScanned == 1:
 			print 'Hosts IP: [open ports]'
@@ -297,11 +301,15 @@ class Scan:
 			self.__addDBDownHosts(macs_up, hosts2scan_longFormat)
 
 	def __actualiceDBports(self, portsScanned, mac, hostIP, ports2scan_longFormat, portsUp):
+		# add last ID host ports. One time for each host ID, neccesary to not forget ports scanned in the past for a host
+		# get id of the host with we are working now
+		hostID = self.db.retrieve_host_id_withIP(self.auditNumber, self.revisionNumber, mac, hostIP)
+		self.__addDBLastIDhostPorts(hostIP, hostID, mac)
 		if portsScanned == 1:
 			# show scanned information
 			self.__showPortsScanned(hostIP, portsUp)
 			# actualice db for ports
-			self.__actualiceDBTablePuertos(mac, hostIP, portsUp, ports2scan_longFormat)
+			self.__actualiceDBTablePuertos(hostID, hostIP, portsUp, ports2scan_longFormat)
 
 	# add new row with host up at hosts table
 	def __addDBUpHost(self, ip, mac, os=None):
@@ -322,16 +330,12 @@ class Scan:
 		os, status, id, rev, ip, date, mac = down_hostInfo
 		self.db.add_host('down', self.revisionNumber, ip, mac)
 
-	def __actualiceDBTablePuertos(self, mac, hostIPwithPorts, portsUp, ports2scan):
-		# get id of the host (using mac) with we are working now
-		id_hostWithPorts = self.db.retrieve_host_id_withIP (self.auditNumber, self.revisionNumber, mac, hostIPwithPorts)
-		# add last ID host ports. One time for each host ID
-		self.__addDBLastIDhostPorts(hostIPwithPorts, id_hostWithPorts, mac)
+	def __actualiceDBTablePuertos(self, hostIDwithPorts, hostIPwithPorts, portsUp, ports2scan):
 		if portsUp != None:
 			# add new information to puertos table
-			self.__addDBnewPorts(id_hostWithPorts, portsUp, hostIPwithPorts)
+			self.__addDBnewPorts(hostIDwithPorts, portsUp, hostIPwithPorts)
 			# add 'closed' ports
-			self.__addDBclosedPorts(id_hostWithPorts, portsUp, ports2scan)
+			self.__addDBclosedPorts(hostIDwithPorts, portsUp, ports2scan)
 
 	def __addDBLastIDhostPorts(self, hostWithPorts, actualHostID, mac):
 	# add ports associated to this host (mac) but at the db are associated to an old id_host
@@ -340,12 +344,12 @@ class Scan:
 		check_idHost_with_DBportsValues = self.db.check_tablePuertosValues4ThisHostID(actualHostID)
 		if check_idHost_with_DBportsValues != 1:
 			# search the last ports information associated to this host (mac) at the table, search the maximum previous id of this host(mac) with port values
-			previousHostID = self.db.retrieve_previous_host_id(self.auditNumber, mac, actualHostID)
+			previousHostID = self.db.retrieve_previousHostID(self.auditNumber, mac, actualHostID)
 			# ckeck if last id has values at table puertos
 			check_idPreviousHost_with_portsValues = self.db.check_tablePuertosValues4ThisHostID(previousHostID)
 			# search last id for this host (mac) with ports values (it is not necessarily the las ID because for the last ID maybe no ports were scanned)
 			while check_idPreviousHost_with_portsValues == -1 and previousHostID > 0:
-				previousHostID = self.db.retrieve_previous_host_id(self.auditNumber, mac, previousHostID)
+				previousHostID = self.db.retrieve_previousHostID(self.auditNumber, mac, previousHostID)
 				check_idPreviousHost_with_portsValues = self.db.check_tablePuertosValues4ThisHostID(previousHostID)
 			# add previous id_host ports to the actual id_host
 			if check_idPreviousHost_with_portsValues == 1:
