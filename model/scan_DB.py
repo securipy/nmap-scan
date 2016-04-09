@@ -26,7 +26,7 @@ class ScanDB:
 
 	def getHostAllInformationDB(self, auditNumber, revisionNumber, hostMac, hostIP):
 		# retrieve info form db table hosts
-		hostLastID = self.db.retrieve_host_id_withIP(auditNumber, revisionNumber, hostMac, hostIP) # work with last information
+		hostLastID = self.db.retrieve_hostID_withIP(auditNumber, revisionNumber, hostMac, hostIP) # work with last information
 		hostIDallInfo = self.db.retrieve_hostAllInfo_byID(hostLastID)
 		infoTableHosts = self.formInfoTableHosts(hostIDallInfo)
 		# retrieve info form db table puertos
@@ -71,7 +71,7 @@ class ScanDB:
 	def getPortsLastID(self, hostID, ports4hostID):
 		portsLastID=[]
 		for port in ports4hostID:
-			portLastID = self.db.retrieve_portLastIDbyHostIDandPort(hostID, port) # type int
+			portLastID = self.db.retrieve_portLastID_byHostIDandPort(hostID, port) # type int
 			portsLastID.append(portLastID) # list of integers
 		portsLastID = tuple(portsLastID)
 		if len(portsLastID) == 1:

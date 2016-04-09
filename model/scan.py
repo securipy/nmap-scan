@@ -135,20 +135,21 @@ class Scan:
 			if hosts2scan_shortFormat != -1 and hosts2scan_longFormat != -1:
 				# ask for parameters of the scan
 				parameters = self.ask.ask4parameters(self.scanCustomNotAllowedOptions)
-				# necessary save ports to scan
-				print '\nPlease, type again ports you want to scan'
-				ports2scan_longFormat = self.ask.ask4ports2search()[1]
 				# scan
 				self.__scanCustomParameters(hosts2scan_shortFormat, parameters)
 				# indicate options
 				self.scanOptions['custom']=1
+				# # if ports were indicated, then they are added at db as open or closed. If no ports were indicated, not retrieve scanned ports are down and the db has to be actualized
+				if self.cf.detectPorts(parameters)[0] == None: # no ports were indicated, scan retrieves open ports
+					self.scanOptions['versionORscript'] = 1 # necessary to actualize db with no retrieve scanned ports
 				self.__actualiceOptions()
 				# show ip of hosts up
 				self.__showHostsIPscannedUp()
 				# actualice database. In CustomParameters all the information is saved
-				self.__actualiceDB(hosts2scan_longFormat, ports2scan_longFormat)
+				self.__actualiceDB(hosts2scan_longFormat)
 				# clear option
 				self.scanOptions['custom']=0
+				self.scanOptions['versionORscript'] = 0
 				self.__actualiceOptions()
 
 	def puertos(self):
@@ -158,7 +159,7 @@ class Scan:
 			hosts2scan_shortFormat = self.ask.ask4hosts2workOptions(self.auditNumber, self.revisionNumber, self.myIP)[0]
 			if hosts2scan_shortFormat != -1:
 				# ask ports to scan
-				[ports2scan_shortFormat, ports2scan_longFormat] = self.ask.ask4ports2search()
+				ports2scan_shortFormat = self.ask.ask4ports2search()[0]
 				if ports2scan_shortFormat != None:
 					# scan
 					self.__scanPorts(hosts2scan_shortFormat, ports2scan_shortFormat)
@@ -166,7 +167,7 @@ class Scan:
 					self.scanOptions['portsState']=1
 					self.__actualiceOptions()
 					# actualice database
-					self.__actualiceDB(None, ports2scan_longFormat)
+					self.__actualiceDB()
 					# clear options
 					self.scanOptions['portsState']=0
 					self.__actualiceOptions()
@@ -229,6 +230,7 @@ class Scan:
 
 	# scan for Discovery option
 	def __scanDiscovery(self, hosts2scan):
+		# example in nmap: nmap -n -sP --exclude 192.168.1.37 192.168.1.1
 		print 'Discovery scan started'
 		self.nm.scan(hosts=hosts2scan, arguments='-n -sP --exclude '+str(self.myIP))
 
@@ -239,6 +241,7 @@ class Scan:
 
 	# scan for Version option
 	def __scanVersion(self, hosts2scan):
+		# example in nmap: nmap -sV --exclude 192.168.1.37 192.168.1.1
 		print 'Version ports scan started'
 		self.nm.scan(hosts=hosts2scan, arguments='-sV --exclude '+str(self.myIP))
 
@@ -258,58 +261,61 @@ class Scan:
 	def __scanPorts(self, hosts2scan, ports2scan):
 		# hosts2scan: string
 		# ports2scan: string
+		# example in nmap: nmap -p 20,80 192.168.1.1
 		print 'Ports scan started'
-		self.nm.scan(hosts=hosts2scan, arguments="-p"+ports2scan)
+		self.nm.scan(hosts=hosts2scan, arguments="-p "+ports2scan)
 
-	def __actualiceDB(self, hosts2scan_longFormat=None, ports2scan_longFormat=None): # example hosts2scan_longFormat=('192.168.1.50', '192.168.1.51', '192.168.1.52')
+	def __actualiceDB(self, hosts2scan_longFormat=None): # example hosts2scan_longFormat=('192.168.1.50', '192.168.1.51', '192.168.1.52')
 		macs_up = [] # using later to know which hosts mac put down
 		# check what scan type was maded
-		hostsScanned = self.ck.checkAnyIs1(self.scanOptions4Hosts)
-		portsScanned = self.ck.checkAnyIs1(self.scanOptions4Ports)
+		hostsWereScanned = self.ck.checkAnyIs1(self.scanOptions4Hosts)
+		portsWereScanned = self.ck.checkAnyIs1(self.scanOptions4Ports)
 		# add last revison hosts (once per revision)
 		self.__addDBlastRevisionHosts()
 		# indicate how info will will be showed
-		if portsScanned == 1:
+		if portsWereScanned == 1:
 			print 'Hosts IP: [open ports]'
 		for hostIP in self.nm.all_hosts():
 			# get host info
-			mac, os, portsUp = self.__getHostScannedInformation(hostIP)
+			hostMac, hostOS, hostPortsScanned_longFormat = self.__getHostScannedInformation(hostIP) # necessary retrieve scanned ports if they were not indicated
 			# save scanned mac
-			macs_up = self.__addScannedMac(hostsScanned, hostIP, macs_up, mac)
+			macs_up = self.__addScannedMac(hostsWereScanned, hostIP, macs_up, hostMac)
 			# add host to hosts table (new hosts can be discovered)
-			self.__addDBUpHost(hostIP, mac, os)  # if the host is at the db, it is added again to know the last time it was scanned
+			self.__addDBUpHost(hostIP, hostMac, hostOS)  # if the host is at the db, it is added again to know the last time it was scanned
 			# work with ports
-			self.__actualiceDBports(portsScanned, mac, hostIP, ports2scan_longFormat, portsUp)
+			self.__actualiceDBportsOfAhost(portsWereScanned, hostMac, hostIP, hostPortsScanned_longFormat)
 		# add 'down' hosts at host table
-		self.__actualiceDBdownHosts(hostsScanned, macs_up, hosts2scan_longFormat)
+		self.__actualiceDBdownHosts(hostsWereScanned, macs_up, hosts2scan_longFormat)
 		# indicate no ports were scanned when scanning ports
-		if portsScanned ==1 and self.nm.all_hosts() == []: # if all ports are closed then nm.all_hosts()=[] (empty)
+		if portsWereScanned ==1 and self.nm.all_hosts() == []: # if all ports are closed then nm.all_hosts()=[] (empty)
 			print 'No ports'
 
-	def __addScannedMac(self, hostsScanned, hostIP, macs_up, mac):
+	def __addScannedMac(self, hostsWereScanned, hostIP, macs_up, mac):
 		if mac == None:
 			print str(hostIP) + ": no mac info"
 		else:
-			if hostsScanned == 1:
+			if hostsWereScanned == 1:
 				macs_up.append(mac)
 		return macs_up
 
-	def __actualiceDBdownHosts(self, hostsScanned, macs_up, hosts2scan_longFormat):
+	def __actualiceDBdownHosts(self, hostsWereScanned, macs_up, hosts2scan_longFormat):
 		# add 'down' hosts at host table
-		if hostsScanned==1:
+		if hostsWereScanned==1:
 			# not add 'down' hosts at hosts table when ports are studied because not scanned ports (-> not host showed as up) does not mean the host is down
 			self.__addDBDownHosts(macs_up, hosts2scan_longFormat)
 
-	def __actualiceDBports(self, portsScanned, mac, hostIP, ports2scan_longFormat, portsUp):
-		# add last ID host ports. One time for each host ID, neccesary to not forget ports scanned in the past for a host
+	def __actualiceDBportsOfAhost(self, portsWereScanned, mac, hostIP, hostPortsScanned_longFormat):
 		# get id of the host with we are working now
-		hostID = self.db.retrieve_host_id_withIP(self.auditNumber, self.revisionNumber, mac, hostIP)
+		hostID = self.db.retrieve_hostID_withIP(self.auditNumber, self.revisionNumber, mac, hostIP)
+		# add last ID host ports. One time for each host ID, neccesary to not forget ports scanned in the past for a host
 		self.__addDBLastIDhostPorts(hostIP, hostID, mac)
-		if portsScanned == 1:
+		if portsWereScanned == 1:
+			# get ports up
+			hostPortsOpen = self.__getScannedPortsByState(hostIP, hostPortsScanned_longFormat)[0]
 			# show scanned information
-			self.__showPortsScanned(hostIP, portsUp)
+			self.__showPortsScanned(hostIP, hostPortsOpen)
 			# actualice db for ports
-			self.__actualiceDBTablePuertos(hostID, hostIP, portsUp, ports2scan_longFormat)
+			self.__actualiceDBtablePuertos(hostID, hostIP, hostPortsScanned_longFormat, hostPortsOpen)
 
 	# add new row with host up at hosts table
 	def __addDBUpHost(self, ip, mac, os=None):
@@ -330,12 +336,11 @@ class Scan:
 		os, status, id, rev, ip, date, mac = down_hostInfo
 		self.db.add_host('down', self.revisionNumber, ip, mac)
 
-	def __actualiceDBTablePuertos(self, hostIDwithPorts, hostIPwithPorts, portsUp, ports2scan):
-		if portsUp != None:
-			# add new information to puertos table
-			self.__addDBnewPorts(hostIDwithPorts, portsUp, hostIPwithPorts)
-			# add 'closed' ports
-			self.__addDBclosedPorts(hostIDwithPorts, portsUp, ports2scan)
+	def __actualiceDBtablePuertos(self, hostIDwithPorts, hostIPwithPorts, portsScanned, portsOpen):
+		# add new information to puertos table (ports scanned as open and closed)
+		self.__addDBscannedPorts(hostIDwithPorts, hostIPwithPorts, portsScanned)
+		# add 'closed' ports. Ports that were open but now they are closed (for options where if ports are not retrieved as scanned ports it means these ports are closed)
+		self.__addDBactualicePorts2closed(hostIDwithPorts, portsOpen)
 
 	def __addDBLastIDhostPorts(self, hostWithPorts, actualHostID, mac):
 	# add ports associated to this host (mac) but at the db are associated to an old id_host
@@ -355,24 +360,21 @@ class Scan:
 			if check_idPreviousHost_with_portsValues == 1:
 				self.db.add_old_ports4host(previousHostID, actualHostID)
 
-	def __addDBnewPorts(self, id_hostWithPorts, ports, hostWithPorts):
+	def __addDBscannedPorts(self, id_hostWithPorts, ip_hostWithPorts, portsScanned):
+		# ports can be scanned as closed in options where ports' number were specified
 		# work with each port of the host
-		for port in ports:
-			# get port values
-			portInformation = self.__getScannedPortInformation(hostWithPorts, port) # portInformation = [portVersionInformation, portScriptInformation, portPortInformation]
-			# add port
-			# always add in order to know last scan time
-			if self.scanOptions['portsState'] == 0:
-				state = 'open'
-			else:
-				state = portInformation[2]
-			self.db.add_port(state, id_hostWithPorts, port, portInformation[0], portInformation[1])
+		if portsScanned != None:
+			for portScanned in portsScanned:
+				# get port values
+				[version, scripts, state] = self.__getScannedPortInformation(ip_hostWithPorts, portScanned) # state: open or closed
+				# add port, always add in order to know last scan time
+				self.db.add_port(state, id_hostWithPorts, portScanned, version, scripts)
 
 	def __getHostScannedInformation(self, hostIP):
 		mac = self.__getScannedMac(hostIP)
 		os = self.__getScannedOperatingSystem(hostIP, mac)
-		portsUp = self.__getScannedPorts(hostIP)
-		return mac, os, portsUp
+		portsScanned = self.__getScannedPorts(hostIP)  # list of integers
+		return mac, os, portsScanned
 
 	def __getScannedMac (self, ip):
 		# if not port information is scanned, self.nm[hostWithPorts]['addresses']['mac'] generate an exception
@@ -427,7 +429,7 @@ class Scan:
 		# retrieve ports numbers, example: [22, 8080]
 		# if not port information is scanned, ports = self.nm[hostWithPorts]['tcp'].keys() generates an exception
 		try:
-			return self.nm[ip]['tcp'].keys()
+			return self.nm[ip]['tcp'].keys() # list of integers
 		except:
 			return None
 
@@ -465,7 +467,7 @@ class Scan:
 		return script
 
 	def __getScannedPortState(self, hostWithPorts, port):
-		return self.__getScannedPortInfo(hostWithPorts,port,'state')
+		return self.__getScannedPortInfo(hostWithPorts, port, 'state')
 
 	def __getScannedPortInfo(self, ip, port, info):
 		# get the information indiciated of the port of a host
@@ -477,22 +479,39 @@ class Scan:
 		except:
 			return None
 
-	def __addDBclosedPorts(self, id_hostWithPorts, portsUp, portsScanned):
-		# portScanned: list of int numbers as strings
-		if self.scanOptions['portsState'] == 0:
+	def __getScannedPortsByState(self, hostIP, hostPortsScanned):
+		portsOpen = []
+		portsClosed = []
+		if hostPortsScanned != None:
+			hostPortsScanned = sorted(set(hostPortsScanned), key=int)  # order in ascendent mode
+			for port in hostPortsScanned:
+				portState = self.__getScannedPortInformation(hostIP, port)[2]
+				if portState == 'open':  # portInformation = [portVersionInformation, portScriptInformation, portPortInformation]
+					portsOpen.append(port)
+				elif portState == 'closed':
+					portsClosed.append(port)
+		return [portsOpen, portsClosed]
+
+	def __addDBactualicePorts2closed(self, id_hostWithPorts, portsOpen):
+		# add 'closed' ports, ports that were open but now they are closed
+		# for options where if ports are not retrieved as scanned ports it means these ports are closed, example Version or Scripts options or in Custom parameters when ports are scanned but no ports number were indicated
+		# Check if at db last ports state is open in order to change to closed
+		# for Port State option and optiones where ports number were indicated, closed ports are already added to database.
+		if self.scanOptions['versionORscript'] == 1:
 			# ports at the db for a id_host that where 'open'
-			id_ports2putClosed = self.db.retrieve_id_ports2putClosed(id_hostWithPorts, portsUp)
-		else:
-			# ports to put as closed ports had to been scanned
-			id_ports2putClosed = self.db.retrieve_id_ports2putClosedPortOption(id_hostWithPorts, portsUp, portsScanned)
-		if id_ports2putClosed != -1: # at the db are ports associated to a host
-			# work with each port
-			for id_port in id_ports2putClosed:
-				closed_port = self.db.retrieve_portAllInfo_byPortID(id_port)
-				if closed_port != -1:
-					id_port, id_hosts_port, puerto_port, estado_port, version_port, fecha_port, scripts_port = closed_port[0]
-					self.db.add_port('closed', id_hostWithPorts, puerto_port, version_port, scripts_port)
-					#self.db.update_port_estadoANDfecha('closed', id_hostWithPorts, old_port[0])
+			portsNumber = self.db.retrieve_ports(id_hostWithPorts)
+			if portsNumber != -1: # host has ports in database
+				portsNumber = self.cf.eliminateTuplesAtList(portsNumber, 1)
+				lastPortsID = self.dbs.getPortsLastID(id_hostWithPorts, portsNumber)
+				id_ports2putClosed = self.db.retrieve_id_ports2putClosed(lastPortsID, portsOpen)
+				if id_ports2putClosed != -1: # at the db are ports associated to a host
+					# work with each port
+					for id_port in id_ports2putClosed:
+						closedPortInfo = self.db.retrieve_portAllInfo_byPortID(id_port)
+						if closedPortInfo != -1:
+							id_port, id_hosts_port, puerto_port, estado_port, version_port, fecha_port, scripts_port = closedPortInfo
+							self.db.add_port('closed', id_hostWithPorts, puerto_port, version_port, scripts_port)
+							#self.db.update_port_estadoANDfecha('closed', id_hostWithPorts, old_port[0])
 
 	def __showHostsIPscannedUp(self, showAllInfo=0):
 		print 'Hosts scanned up: ' + str(self.nm.all_hosts())
@@ -507,18 +526,17 @@ class Scan:
 				except:
 					print '- No info scanned'
 
-	def __showPortsScanned(self, hostWithPorts, ports, showAllInfo=0):
-		if ports == None:
+	def __showPortsScanned(self, hostWithPorts, hostPorts2show, showAllInfo=0):
+		if hostPorts2show == []:
 			print str(hostWithPorts) + ": no ports info"
 		else:
-			ports = sorted(set(ports), key=int) # order in ascendent mode
 			if self.scanOptions['portsState'] == 0:
 				# show scanned ports
 				if showAllInfo == 0:
-					print str(hostWithPorts) + ': ' + str(ports)
+					print str(hostWithPorts) + ': ' + str(hostPorts2show)
 				else:
-					print '\n' + str(hostWithPorts) + ': ' + str(ports)
-					for port in ports:
+					print '\n' + str(hostWithPorts) + ': ' + str(hostPorts2show)
+					for port in hostPorts2show:
 						portVersionInformation = self.__getScannedPortInformation(hostWithPorts, port)[0] # portInformation = [portVersionInformation, portScriptInformation, portPortInformation]
 						print '- ' + str(port)
 						print portVersionInformation
@@ -527,13 +545,9 @@ class Scan:
 						# 		print '- %s: %s' %(key, value)
 						# except:
 						# 	print '- No info scanned'
-			else:
+			else: # scanned if ports are open or closed
 				# Port scan only show open ports
-				portsOpen = []
-				for port in ports:
-					if self.__getScannedPortInformation(hostWithPorts, port)[2] == 'open': # portInformation = [portVersionInformation, portScriptInformation, portPortInformation]
-						portsOpen.append(port)
-				print str(hostWithPorts) + ' ' + str(portsOpen)
+				print str(hostWithPorts) + ' ' + str(hostPorts2show)
 
 	def __createFile4port(self, port):
 		hostsIPwithAport = self.__checkDBandGetHostsIPwithAport(port)
@@ -586,8 +600,8 @@ class Scan:
 			listAuxiliar.append(idOfHostsUpWithPort)
 			idOfHostsUpWithPort = listAuxiliar
 		for idHost in idOfHostsUpWithPort:
-			lastIDport = self.db.retrieve_portLastIDbyHostIDandPort(idHost, port)
-			hostIP = self.db.retrieve_hostIP4portID(self.auditNumber, self.revisionNumber, lastIDport)
+			lastIDport = self.db.retrieve_portLastID_byHostIDandPort(idHost, port)
+			hostIP = self.db.retrieve_hostIP_byPortID(self.auditNumber, self.revisionNumber, lastIDport)
 			hostsIP.append(hostIP) # list
 		hostsIP = list(set(hostsIP)) # remove hosts IP repeated
 		return hostsIP # example: [u'192.168.1.2', u'192.168.1.3']

@@ -283,16 +283,31 @@ class Database:
 			return -1
 
 	# Retrieve id of ports that are open at the db for this id_host but are not scanned as ports open; get last row added
-	def retrieve_id_ports2putClosed(self, id_host, portsScannedAsUp):
-		portsScannedAsUp = tuple(portsScannedAsUp) # necessary a tuple for the sql petition
-		if len(portsScannedAsUp)==1:
-			portsScannedAsUp = portsScannedAsUp+portsScannedAsUp    # avoid tuple to end with coma
-		sql = "SELECT id FROM puertos WHERE puerto NOT IN " + str(portsScannedAsUp) + " AND estado = 'open' AND id_hosts = '%s' AND id IN (SELECT id FROM (SELECT id, COUNT(*) AS c FROM puertos GROUP BY puerto HAVING c>=1));"  % id_host
+	# def retrieve_id_ports2putClosed(self, id_host, portsScannedAsUp):
+	# 	portsScannedAsUp = tuple(portsScannedAsUp) # necessary a tuple for the sql petition
+	# 	if len(portsScannedAsUp)==1:
+	# 		portsScannedAsUp = portsScannedAsUp+portsScannedAsUp    # avoid tuple to end with coma
+	# 	sql = "SELECT id FROM puertos WHERE puerto NOT IN " + str(portsScannedAsUp) + " AND estado = 'open' AND id_hosts = '%s' AND id IN (SELECT id FROM (SELECT id, COUNT(*) AS c FROM puertos GROUP BY puerto HAVING c>=1));"  % id_host
+	# 	if self.cur.execute(sql) > 0:
+	# 		id_ports = self.cur.fetchall()
+	# 		if id_ports != []: # this revision has values at the table
+	# 			return id_ports
+	# 		else: # at the table there are no values
+	# 			return -1
+	# 	else:
+	# 		return -1
+	def retrieve_id_ports2putClosed(self, lastPortsID, portsScannedAsUp):
+		# ouput: list of one or more strings
+		portsScannedAsUp = tuple(portsScannedAsUp)  # necessary a tuple for the sql petition
+		if len(portsScannedAsUp) == 1:
+			portsScannedAsUp = portsScannedAsUp + portsScannedAsUp  # avoid tuple to end with coma
+		sql = "SELECT id FROM puertos WHERE id IN " + str(lastPortsID) + " AND puerto NOT IN " + str(portsScannedAsUp) + " AND estado = 'open' "
 		if self.cur.execute(sql) > 0:
 			id_ports = self.cur.fetchall()
-			if id_ports != []: # this revision has values at the table
+			if id_ports != []:  # this revision has values at the table
+				id_ports = self.cf.eliminateTuplesAtList(id_ports, 1)
 				return id_ports
-			else: # at the table there are no values
+			else:  # at the table there are no values
 				return -1
 		else:
 			return -1
@@ -315,9 +330,6 @@ class Database:
 				return -1
 		else:
 			return -1
-
-	# Retrieve host operating system by host_id
-
 
 	# Retrieve all host information by host id
 	def retrieve_hostAllInfo_byID(self, id_host):
@@ -401,7 +413,7 @@ class Database:
 			return -1
 
 	# Retrieve last id_host by audit, revision, mac and ip from hosts table (more actual host at host table)
-	def retrieve_host_id_withIP(self, id_audit, id_rev, mac, ip):
+	def retrieve_hostID_withIP(self, id_audit, id_rev, mac, ip):
 		sql = "SELECT MAX(id) FROM hosts WHERE mac = '%s' AND ip = '%s' AND id_revision = (SELECT id FROM revision WHERE id = '%s' AND id_auditorias = '%s');" % (mac, ip, id_rev, id_audit)
 		if self.cur.execute(sql) > 0:
 			host_id = self.cur.fetchall()
@@ -481,7 +493,7 @@ class Database:
 			return -1
 
 	# Get last id of a port for a host. Example: for the same host a port is first open and at the end closed (different rows), with this function we only work with last state, closed in this example
-	def retrieve_portLastIDbyHostIDandPort (self, id_host, port):
+	def retrieve_portLastID_byHostIDandPort (self, id_host, port):
 		sql = "SELECT MAX(id) FROM puertos WHERE id_hosts='%s' AND puerto = '%s';" %(id_host, port)
 		if self.cur.execute(sql) > 0:
 			id_port = self.cur.fetchall() # lists of one tuple, example: [(18,)]
@@ -494,7 +506,7 @@ class Database:
 			return -1
 
 	# Retrieve host ip with port indicated open
-	def retrieve_hostIP4portID(self, id_audit, id_rev, id_port):
+	def retrieve_hostIP_byPortID(self, id_audit, id_rev, id_port):
 		sql = "SELECT DISTINCT ip FROM hosts WHERE id IN (SELECT id_hosts FROM puertos WHERE id = '%s' AND estado = 'open') AND id_revision = (SELECT id FROM revision WHERE id = '%s' AND id_auditorias = '%s');" % (id_port, id_rev, id_audit)
 		# distinct: avoid repeated values
 		if self.cur.execute(sql) > 0:

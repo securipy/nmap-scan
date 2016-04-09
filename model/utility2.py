@@ -13,6 +13,27 @@ class ChangeFormat:
         self.ck = Check()
         self.cfNmap = Utility_convert2nmapFormat()
 
+    def detectPorts(self, parameters):
+        # input: parameters for the Nmap scan
+        # output: string with indicated ports
+        # obtain each part of the Nmap parameters introduced
+        parametersParts = self.createListSpaceParts(parameters)
+        portsShortFormat = self.detectPortsPart(parametersParts) # example ['20', '21', '22, '80']
+        if portsShortFormat == None:
+            portsLongFormat = None
+        else:
+            portsLongFormat = self.convertSring2ListWitchAllValues(portsShortFormat)  # example ['20', '21', '22, '80']
+        return [portsShortFormat, portsLongFormat]
+
+    def detectPortsPart(self, parametersParts):
+        # input. parametersParts: list of strings
+        # ouput. string that has ports (string without characters and dots)
+        for part in parametersParts:
+            if self.ck.checkCharacter(part) == -1:  # search parts without this
+                if self.ck.checkDot(part) == -1:
+                    return part  # string without the search characters is part with ports
+        return None # no ports in parametersParts
+
     def getShortLongFormatFromLongFormat(self, hostsIP_longFormat, myIP):
         # variables:
         # - input
@@ -51,18 +72,13 @@ class ChangeFormat:
                     [ipBase, ipFirstHost, ipLastHost, ipBroadcast, mask]=self.cIP.calculate_ip(hostsIPnmapFormat)
                     ip2scan.extend(self.createRange4completeIP(ipFirstHost, ipLastHost))
                 else: # if no slash used, then a dash can be used
-                    # separators
-                    separate_coma = re.compile(',')
-                    separate_dash = re.compile('-')
-                    # separate_slash = re.compile('/')
-                    separate_dot = re.compile('\.')
                     # obtain each part of the ip introduced: ip = ip1.ip2.ip3.ip4
-                    [ip1, ip2, ip3, ip4] = separate_dot.split(hostsIPnmapFormat)
+                    [ip1, ip2, ip3, ip4] = self.createListDotParts(hostsIPnmapFormat)
                     # get list of numbers range for each part of the IP:
-                    ip1_listNumbers = self.createRange4ipPart(ip1, separate_coma, separate_dash)
-                    ip2_listNumbers = self.createRange4ipPart(ip2, separate_coma, separate_dash)
-                    ip3_listNumbers = self.createRange4ipPart(ip3, separate_coma, separate_dash)
-                    ip4_listNumbers = self.createRange4ipPart(ip4, separate_coma, separate_dash)
+                    ip1_listNumbers = self.createRange4ipPart(ip1)
+                    ip2_listNumbers = self.createRange4ipPart(ip2)
+                    ip3_listNumbers = self.createRange4ipPart(ip3)
+                    ip4_listNumbers = self.createRange4ipPart(ip4)
                     # create a list with all hosts ip to scan
                     for ip1 in ip1_listNumbers:
                         for ip2 in ip2_listNumbers:
@@ -77,12 +93,12 @@ class ChangeFormat:
                 print color('rojo', 'Invalid syntax')
                 return -1
 
-    def createRange4ipPart(self, string, separate_coma, separate_dash):
+    def createRange4ipPart(self, string):
         # example: '1-3,5,10-12' = [1,2,3,5,10,11,12]
         # parts separated with comas
-        comaParts = self.createListComaParts(string, separate_coma)
+        comaParts = self.createListComaParts(string)
         # parts separated with dash
-        rangeNumbers = self.createListRangeDashParts(comaParts, separate_dash)
+        rangeNumbers = self.createListRangeDashParts(comaParts)
         return rangeNumbers
 
     def createRange4completeIP(self, first_ip, last_ip): # ip [=] string '1.2.3.4'
@@ -101,25 +117,39 @@ class ChangeFormat:
         # variables:
         # - input: string
         # - output: list of str
-        separate_dot = re.compile('\.') # separator
-        list2return = separate_dot.split(str2convert)
+        separator = '\.' # separator
+        list2return = self.createSeparation(separator, str2convert)
         return list2return
 
-    def createListComaParts(self, strIntroduced, separate_coma):
+    def createListComaParts(self, strIntroduced):
         # example: '5,10-12' -> ['5','10-12']
         # example 2: '1' = ['1']
+        separator = ','
         if self.ck.checkComa(strIntroduced) == 1: # any coma introduced
-            comaParts = separate_coma.split(strIntroduced)
+            comaParts = self.createSeparation(separator, strIntroduced)
         else:
             comaParts = [strIntroduced]
         return comaParts
 
-    def createListRangeDashParts (self, listComaParts, separate_dash):
+    def createListSpaceParts(self, strIntroduced):
+        # example: 'nmap -p 20,80 192.168.1.1' -> ['nmap', '-p', '20,80', '192.168.1.1']
+        separator = ' '
+        spaceParts = self.createSeparation(separator, strIntroduced)
+        return spaceParts
+
+    def createListSlashParts(self, strIntroduced):
+        # example: '192.168.1.0/24' -> ['192.168.1.0', '24']
+        separator = '/'
+        spaceParts = self.createSeparation(separator, strIntroduced)
+        return spaceParts
+
+    def createListRangeDashParts (self, listComaParts):
         # example: ['1','3-5'] -> ['1','3','4','5']
+        separator = ('-')
         dashParts = []
         for comaPart in listComaParts:
             if self.ck.checkDash(comaPart) == 1:
-                dashNumbers = separate_dash.split(comaPart) # example dashNumbers = ['3', '6']
+                dashNumbers = self.createSeparation(separator, comaPart) # example dashNumbers = ['3', '6']
                 add2dash = self.createListRange4dashPart(dashNumbers)
                 dashParts.extend(add2dash)
             else:
@@ -133,6 +163,11 @@ class ChangeFormat:
         for number in range(int(dashNumbers[0]),int(dashNumbers[1])+1):
             listRangeDash.append(str(number))
         return listRangeDash
+
+    def createSeparation(self, separator, str2separate):
+        separate = re.compile(separator)
+        listParts = separate.split(str2separate)
+        return listParts
 
     def hosts2nmapFormat (self, IPTupleCompleteIP):
         # converts a tuple to the Nmap required format
@@ -301,6 +336,13 @@ class Check:
     def checkSlash(self, string):
         # check if the string has a slash
         if len(re.findall("/",string)) >= 1:
+            return 1
+        else:
+            return -1
+
+    def checkDot(self, string):
+        # check if the string has a slash
+        if len(re.findall("\.",string)) >= 1:
             return 1
         else:
             return -1
