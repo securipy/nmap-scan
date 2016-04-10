@@ -341,7 +341,7 @@ class Check:
             return -1
 
     def checkDot(self, string):
-        # check if the string has a slash
+        # check if the string has a dot
         if len(re.findall("\.",string)) >= 1:
             return 1
         else:
