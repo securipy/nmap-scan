@@ -133,13 +133,13 @@ class CalcIP:
         # separate ip and mask
         try:
             separateParts = ip_mask.split('/')
+            # get each part
+            ip = separateParts[0]    # ip = '0.1.2.3'
+            ipParts = self.retrieveIPparts(ip) # ipParts = ['0','1','2','3']
+            mask = separateParts[1]    # mask = '24', string
         except:
-            ip = -1
+            ipParts = -1
             mask = -1
-        # get each part
-        ip = separateParts[0]    # ip = '0.1.2.3'
-        ipParts = self.retrieveIPparts(ip) # ipParts = ['0','1','2','3']
-        mask = separateParts[1]    # mask = '24', string
         # return results
         return ipParts, mask
 
