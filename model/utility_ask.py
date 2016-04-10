@@ -93,7 +93,7 @@ class Ask:
 			parameters = raw_input('Type parameters for the scan: ')
 			if self.ck.checkInString(parameters, scanCustomNotAllowedOptions) == 1:
 				parameters = ""
-				print color('rojo', 'Thanks for using this tool\nThe specified option is not available\nRemember, this tool works with a database\nOptions not allowed: '+str(scanCustomNotAllowedOptions)+'\nTry another command')
+				print color('rojo', 'Thanks for using this tool\nThe specified parameter is not available\nRemember, this tool save information in a database and input/output information is controlled\nOptions not allowed: '+str(scanCustomNotAllowedOptions)+'\nTry another parameter')
 		return parameters
 
 	def ask4ports2search(self):

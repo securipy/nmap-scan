@@ -45,7 +45,22 @@ class Scan:
 		self.nt = NetworkUtility()
 		self.save_path = 'modules/nmap-scan/model/exportedFiles' # where save .txt files
 		self.scanOptions = {'discovery':0, 'operatingSystem':0, 'versionORscript':0, 'custom':0, 'portsState':0} # what the user want to scan. Values: -1 (not used) or 1 (used)
-		self.scanCustomNotAllowedOptions = ['-iR'] # not allowed command at CustomParameters option
+		# not allowed commands at CustomParameters option. Those that modify input or output information
+		self.scanCustomNotAllowedOptions = ['-iR',
+											'-iL',
+											'-iR',
+											'--exlucefile',
+											'-oN',
+											'-oX',
+											'-oS',
+											'-oG',
+											'-oA',
+											'--append-output',
+											'--resume',
+											'--stylesheet',
+											'--webxml',
+											'--no_stylesheet',
+											'--append-output']
 
 	def select_audit(self):
 		self.auditNumber, self.auditName = self.ar.selectAudit()
