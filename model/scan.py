@@ -292,11 +292,11 @@ class Scan:
 			print 'Hosts IP: [open ports]'
 		for hostIP in self.nm.all_hosts():
 			# get host info
-			hostMac, hostOS, hostPortsScanned_longFormat = self.__getHostScannedInformation(hostIP) # necessary retrieve scanned ports if they were not indicated
+			hostMac, hostOS, hostPortsScanned_longFormat, hostName = self.__getHostScannedInformation(hostIP) # necessary retrieve scanned ports if they were not indicated
 			# save scanned mac
 			macs_up = self.__addScannedMac(hostsWereScanned, hostIP, macs_up, hostMac)
 			# add host to hosts table (new hosts can be discovered)
-			self.__addDBUpHost(hostIP, hostMac, hostOS)  # if the host is at the db, it is added again to know the last time it was scanned
+			self.__addDBUpHost(hostIP, hostMac, hostOS, hostName)  # if the host is at the db, it is added again to know the last time it was scanned
 			# work with ports
 			self.__actualiceDBportsOfAhost(portsWereScanned, hostMac, hostIP, hostPortsScanned_longFormat)
 		# add 'down' hosts at host table
@@ -333,8 +333,8 @@ class Scan:
 			self.__actualiceDBtablePuertos(hostID, hostIP, hostPortsScanned_longFormat, hostPortsOpen)
 
 	# add new row with host up at hosts table
-	def __addDBUpHost(self, ip, mac, os=None):
-		self.db.add_host('up', self.revisionNumber, ip, mac, os)
+	def __addDBUpHost(self, ip, mac, os=None, name=None):
+		self.db.add_host('up', self.revisionNumber, ip, mac, os, name)
 
 	# add 'down' hosts
 	def __addDBDownHosts(self, macs_up, hosts_scanned):
@@ -348,8 +348,8 @@ class Scan:
 	# add new row with hosts down at hosts table
 	def __addDBDownHost(self, id_host):
 		down_hostInfo = self.db.retrieve_hostAllInfo_byID(id_host)
-		os, status, id, rev, ip, date, mac = down_hostInfo
-		self.db.add_host('down', self.revisionNumber, ip, mac)
+		os, status, id, rev, ip, date, mac, name = down_hostInfo
+		self.db.add_host('down', self.revisionNumber, ip, mac, None, name)
 
 	def __actualiceDBtablePuertos(self, hostIDwithPorts, hostIPwithPorts, portsScanned, portsOpen):
 		# add new information to puertos table (ports scanned as open and closed)
@@ -389,7 +389,8 @@ class Scan:
 		mac = self.__getScannedMac(hostIP)
 		os = self.__getScannedOperatingSystem(hostIP, mac)
 		portsScanned = self.__getScannedPorts(hostIP)  # list of integers
-		return mac, os, portsScanned
+		hostName = self.__getScannedHostName(hostIP)
+		return mac, os, portsScanned, hostName
 
 	def __getScannedMac (self, ip):
 		# if not port information is scanned, self.nm[hostWithPorts]['addresses']['mac'] generate an exception
@@ -437,6 +438,16 @@ class Scan:
 	def __getScannedOS(self,ip,mac,info):
 		try:
 			return self.nm[ip][info][mac]
+		except:
+			return None
+
+	def __getScannedHostName(self,ip):
+		try:
+			hostname = self.nm[ip]['hostnames']
+			if hostname == []:
+				return None
+			else:
+				return hostname
 		except:
 			return None
 

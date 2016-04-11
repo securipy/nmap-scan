@@ -69,7 +69,7 @@ class ChangeFormat:
                 ip2scan = [] # save hosts IP at complete format
                 if self.ck.checkSlash(hostsIPnmapFormat) == 1: # detects if any slash has been used
                     # ip range indicated using slash
-                    [ipBase, ipFirstHost, ipLastHost, ipBroadcast, mask]=self.cIP.calculate_ip(hostsIPnmapFormat)
+                    [ipBase, ipFirstHost, ipLastHost, ipBroadcast, mask, numberHosts]=self.cIP.calculate_ip(hostsIPnmapFormat)
                     ip2scan.extend(self.createRange4completeIP(ipFirstHost, ipLastHost))
                 else: # if no slash used, then a dash can be used
                     # obtain each part of the ip introduced: ip = ip1.ip2.ip3.ip4

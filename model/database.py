@@ -122,8 +122,8 @@ class Database:
 
 
 	# Add new host, retun the id given to the record
-	def add_host(self, state, id_rev, ip, mac, os=None):
-		sql = "INSERT INTO hosts(OS, estado, id_revision, ip, fecha, mac) VALUES ('%s', '%s','%s','%s',CURRENT_TIMESTAMP,'%s');" % (os, state, id_rev, ip, mac)
+	def add_host(self, state, id_rev, ip, mac, os=None, name=None):
+		sql = "INSERT INTO hosts(OS, estado, id_revision, ip, fecha, mac, name) VALUES ('%s', '%s','%s','%s',CURRENT_TIMESTAMP,'%s','%s');" % (os, state, id_rev, ip, mac, name)
 		self.cur.execute(sql)
 		self.con.commit()
 		return self.cur.lastrowid
@@ -519,13 +519,13 @@ class Database:
 		else:
 			return -1
 
-	# Add host info
-	def add_infohost(self, id_host, port, state, version):
-		sql = "INSERT INTO info_host(id_hosts, puerto, estado, version) VALUES (%s,%s,%s);"
-		args = (id_host, port, state, version)
-		self.cur.execute(sql, args)
-		self.con.commit()
-		return self.cur.lastrowid
+	# # Add host info
+	# def add_infohost(self, id_host, port, state, version, name):
+	# 	sql = "INSERT INTO info_host(id_hosts, puerto, estado, version, name) VALUES (%s,%s,%s,%s);"
+	# 	args = (id_host, port, state, version, name)
+	# 	self.cur.execute(sql, args)
+	# 	self.con.commit()
+	# 	return self.cur.lastrowid
 
 	# Update port state
 	def update_port_estadoANDfecha(self, state, id_host, port):
@@ -533,20 +533,20 @@ class Database:
 		self.cur.execute(sql)
 		self.con.commit()
 
-	# compare actual host values with host values at db, returns -1 if all the info is the same
-	def compare_hosts(self, host_db, host_scan):
-		difference = -1
-		# state
-		if str(host_db[0][1]) != host_scan[0][0]:
-			difference = 1
-		# ip
-		elif str(host_db[0][4]) != host_scan[0][1]:
-			difference = 1
-		# mac
-		# not necessary because host_db was search using host_scan's mac
-		elif str(host_db[0][6]) != host_scan[0][2]:
-			difference = 1
-		return difference
+	# # compare actual host values with host values at db, returns -1 if all the info is the same
+	# def compare_hosts(self, host_db, host_scan):
+	# 	difference = -1
+	# 	# state
+	# 	if str(host_db[0][1]) != host_scan[0][0]:
+	# 		difference = 1
+	# 	# ip
+	# 	elif str(host_db[0][4]) != host_scan[0][1]:
+	# 		difference = 1
+	# 	# mac
+	# 	# not necessary because host_db was search using host_scan's mac
+	# 	elif str(host_db[0][6]) != host_scan[0][2]:
+	# 		difference = 1
+	# 	return difference
 
 	# compare actual port values with port values at db, returns -1 if all the info is the same
 	def compare_port(self, port_db, port_info_scan):
