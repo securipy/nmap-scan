@@ -50,7 +50,8 @@ class add(object):
 			print color('magenta', '8. Ports')
 			print color('magenta', '9. Generate file ports')
 			print color('magenta', '10. Get all information of a host')
-			print color('magenta', '11. What is my base IP')
+			print color('magenta', "11. Change host's name")
+			print color('magenta', '12. What is my base IP')
 			print color('rojo', '0. Exit')
 		
 		__menu__()
@@ -83,6 +84,8 @@ class add(object):
 			elif sentencia == '10':
 				scan.allInfoHost()
 			elif sentencia == '11':
+				scan.changeHostName()
+			elif sentencia == '12':
 				scan.calcIPbase()
 			elif sentencia == '0':
 				sys.exit()

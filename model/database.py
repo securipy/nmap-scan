@@ -360,6 +360,20 @@ class Database:
 		else:
 			return -1
 
+	# Retrieve hosts ip and name of the indicated revision
+	def retrieve_hostsIDipAndNames_byRevision(self, id_audit, id_rev):
+		# get last information added to the database
+		sql = "SELECT id, ip, name FROM hosts WHERE id_revision = (SELECT id FROM revision WHERE id = '%s' AND id_auditorias = '%s') GROUP BY ip" % (id_rev, id_audit)
+		# group by: select last added information grouped by the indicated field. Must be at the end of the query
+		if self.cur.execute(sql) > 0:
+			hostsIDipAndNames = self.cur.fetchall() # example: [(8, u'192.168.1.1', u'None'), (9, u'192.168.1.34', u'None'), (10, u'192.168.1.37', u'None')]
+			if hostsIDipAndNames != []:
+				return hostsIDipAndNames  # type list # return self.cur.fetchall() returns []
+			else:
+				return -1
+		else:
+			return -1
+
 	# Retrieve hosts mac with the indicated host IP
 	def retrieve_hostsMac_byIP(self, id_audit, id_rev, ip):
 		sql = "SELECT DISTINCT mac FROM hosts WHERE id_revision = (SELECT id FROM revision WHERE id = '%s' AND id_auditorias = '%s') AND ip = '%s';" % (id_rev, id_audit, ip)
@@ -530,6 +544,12 @@ class Database:
 	# Update port state
 	def update_port_estadoANDfecha(self, state, id_host, port):
 		sql = "UPDATE puertos SET estado = '%s', fecha = CURRENT_TIMESTAMP WHERE id_hosts = '%s' AND puerto = '%s';" % (state, id_host, port)
+		self.cur.execute(sql)
+		self.con.commit()
+
+	# update host name
+	def update_hostName_byID(self, id_host, newName):
+		sql = "UPDATE hosts SET name = '%s' WHERE id = '%s'" % (newName, id_host)
 		self.cur.execute(sql)
 		self.con.commit()
 

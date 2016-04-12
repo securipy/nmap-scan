@@ -19,6 +19,7 @@ from teco import color, style
 from utility2 import ChangeFormat, Check, Message
 from utility_ask import Ask
 from utility_calculatorIP import CalcIP
+from utility_changeHostName import ChangeHostName
 from utility_export import UtilityExport
 from utility_network import NetworkUtility
 from utility_selectAuditAndRevision import SelectAuditRev
@@ -37,6 +38,7 @@ class Scan:
 		self.cf = ChangeFormat()
 		self.cIP = CalcIP()
 		self.ck = Check()
+		self.cn = ChangeHostName()
 		self.db = Database()
 		self.dbs = ScanDB()
 		self.ex = UtilityExport()
@@ -45,7 +47,7 @@ class Scan:
 		self.nt = NetworkUtility()
 		self.save_path = 'modules/nmap-scan/model/exportedFiles' # where save .txt files
 		self.scanOptions = {'discovery':0, 'operatingSystem':0, 'versionORscript':0, 'custom':0, 'portsState':0} # what the user want to scan. Values: -1 (not used) or 1 (used)
-		# not allowed commands at CustomParameters option. Those that modify input or output information
+		# not allowed commands at CustomParameters option (black list). Those that modify input or output information
 		self.scanCustomNotAllowedOptions = ['-iR',
 											'-iL',
 											'-iR',
@@ -208,6 +210,11 @@ class Scan:
 		hostsIP_longFormat = self.ask.ask4hosts2workOptions(self.auditNumber, self.revisionNumber, self.myIP)[1]
 		for hostIP in hostsIP_longFormat:
 			self.__createFile4host(hostIP, modeHostInformation)
+
+	def changeHostName(self):
+		# give an indicative name for each host
+		self.__check_audit_rev()
+		self.cn.changeName(self.auditNumber, self.revisionNumber)
 
 	def calcIPbase(self):
 		self.cIP.askAndCalculate()
@@ -443,7 +450,7 @@ class Scan:
 
 	def __getScannedHostName(self,ip):
 		try:
-			hostname = self.nm[ip]['hostnames']
+			hostname = self.nm[ip]['hostnames'][0]['name'] # example. 'hostnames': [{'type': 'PTR', 'name': 'moli-mol.cuenca.es'}]
 			if hostname == []:
 				return None
 			else:

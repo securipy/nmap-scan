@@ -48,6 +48,15 @@ class Ask:
 			number = self.cf.convertString2Int(number)
 		return number
 
+	def ask4ListOptionNumber(self, availableOptionsNumbers):
+		optionNumber = ''
+		while optionNumber == '':
+			optionNumber = self.ask4number()
+			if optionNumber not in availableOptionsNumbers:
+				self.ms.adviseInvalidOption()
+				optionNumber = ''
+		return optionNumber
+
 	def ask4hosts2workOptions(self, auditNumber, revisionNumber, myIP):
 		# get ip to scan
 		option2scan = self.ask4hostsOption()

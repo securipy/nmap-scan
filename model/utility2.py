@@ -396,6 +396,9 @@ class Message:
     def adviseInvalidSyntax(self):
         print color('rojo', 'Invalid syntax \n')
 
+    def adviseInvalidOption(self):
+        print color('rojo', 'Invalid option')
+
     def adviseNotInDB4revision(self, whatNotInDB, moreInfo=None):
         if moreInfo != None:
             print color('rojo', '%s %s not at database for this revision\n' %(whatNotInDB, moreInfo))
