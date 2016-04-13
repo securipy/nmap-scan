@@ -122,7 +122,7 @@ class Database:
 
 
 	# Add new host, retun the id given to the record
-	def add_host(self, state, id_rev, ip, mac, os=None, name=None):
+	def add_host(self, state, id_rev, ip, mac, os, name):
 		sql = "INSERT INTO hosts(OS, estado, id_revision, ip, fecha, mac, name) VALUES ('%s', '%s','%s','%s',CURRENT_TIMESTAMP,'%s','%s');" % (os, state, id_rev, ip, mac, name)
 		self.cur.execute(sql)
 		self.con.commit()
@@ -142,11 +142,11 @@ class Database:
 	# 	self.con.commit()
 	# 	return self.cur.lastrowid
 
-	# add hosts form last revision
-	def add_old_hosts(self, id_audit, id_rev): # id_rev[=]str
-		last_revision = self.retrieve_last_revision4thisAudit(id_audit, id_rev)
+	# add hosts from last revision
+	def add_old_hosts(self, id_audit, id_rev_actual): # id_rev_actual[=]str
+		last_revision = self.retrieve_last_revision4thisAudit(id_audit, id_rev_actual)
 		if int(last_revision) >= 1: # first revision has id 1 (before this, no revision with values)
-			sql = "INSERT INTO hosts (OS, estado, id_revision, ip, fecha, mac) SELECT OS, estado, '%s', ip, fecha, mac FROM hosts WHERE id_revision = (SELECT id FROM revision WHERE id = '%s' AND id_auditorias = '%s');" % (id_rev, last_revision, id_audit) # necessary compare audit in order not to get values of another audit
+			sql = "INSERT INTO hosts (OS, estado, id_revision, ip, fecha, mac, name) SELECT OS, estado, '%s', ip, fecha, mac, name FROM hosts WHERE id_revision = (SELECT id FROM revision WHERE id = '%s' AND id_auditorias = '%s');" % (id_rev_actual, last_revision, id_audit) # necessary compare audit in order not to get values of another audit
 			self.cur.execute(sql)
 			self.con.commit()
 			return self.cur.lastrowid
@@ -389,17 +389,17 @@ class Database:
 		else:
 			return -1
 
-	# Retrieve host by revision id and mac for this audit. Host with maximum id (last actualization)
-	def retrieve_last_host(self, id_audit, id_rev, mac):
-		sql = "SELECT * FROM hosts WHERE id = (SELECT MAX(id) FROM hosts WHERE (mac = '%s' AND id_revision = (SELECT id FROM revision WHERE id = '%s' AND id_auditorias = '%s')));" % (mac, id_rev, id_audit)
-		if self.cur.execute(sql) > 0:
-			row_db = self.cur.fetchall()
-			if row_db != []:
-				return row_db
-			else:
-				return -1
-		else:
-			return -1
+	# # Retrieve host by revision id and mac for this audit. Host with maximum id (last actualization)
+	# def retrieve_last_host(self, id_audit, id_rev, mac):
+	# 	sql = "SELECT * FROM hosts WHERE id = (SELECT MAX(id) FROM hosts WHERE (mac = '%s' AND id_revision = (SELECT id FROM revision WHERE id = '%s' AND id_auditorias = '%s')));" % (mac, id_rev, id_audit)
+	# 	if self.cur.execute(sql) > 0:
+	# 		row_db = self.cur.fetchall()
+	# 		if row_db != []:
+	# 			return row_db
+	# 		else:
+	# 			return -1
+	# 	else:
+	# 		return -1
 
 	# # Retrieve host id by revision id and mac for this audit. Host with maximum id (last actualization)
 	# def retrieve_last_host_id(self, id_audit, id_rev, mac):
@@ -414,7 +414,7 @@ class Database:
 	# 		return -1
 
 	# Retrieve previous host ID associated to a mac for this audit (information can come from previous revision). Previous to the actual host ID
-	def retrieve_previousHostID(self, id_audit, mac, actualID):
+	def retrieve_hostPreviousID(self, id_audit, mac, actualID):
 		sql = "SELECT MAX(id) FROM hosts WHERE (id < '%s' AND mac = '%s' AND id_revision IN (SELECT id FROM revision WHERE id_auditorias = '%s'));" % (actualID, mac, id_audit)
 		if self.cur.execute(sql) > 0:
 			previousID = self.cur.fetchall()
@@ -438,6 +438,15 @@ class Database:
 				return -1
 		else:
 			return -1
+
+	# Retrieve hostname by host ID
+	def retrieve_hostName_byHostID(self, id_host):
+		sql = "SELECT name FROM hosts WHERE id = '%s'" %id_host
+		if self.cur.execute(sql) > 0:
+			host_name = self.cur.fetchall()
+			if host_name != [('None',)] and host_name != []:
+				return host_name[0][0] # example: [(u'moli-mol.cuenca.es',)]
+		return -1	# host indicated with ID has not name
 
 	# Retrieve all port information by port id
 	def retrieve_portAllInfo_byPortID(self, id_port):

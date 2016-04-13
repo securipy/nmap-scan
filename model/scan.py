@@ -303,7 +303,7 @@ class Scan:
 			# save scanned mac
 			macs_up = self.__addScannedMac(hostsWereScanned, hostIP, macs_up, hostMac)
 			# add host to hosts table (new hosts can be discovered)
-			self.__addDBUpHost(hostIP, hostMac, hostOS, hostName)  # if the host is at the db, it is added again to know the last time it was scanned
+			self.__addDBupHost(hostIP, hostMac, hostOS, hostName)  # if the host is at the db, it is added again to know the last time it was scanned
 			# work with ports
 			self.__actualiceDBportsOfAhost(portsWereScanned, hostMac, hostIP, hostPortsScanned_longFormat)
 		# add 'down' hosts at host table
@@ -340,8 +340,14 @@ class Scan:
 			self.__actualiceDBtablePuertos(hostID, hostIP, hostPortsScanned_longFormat, hostPortsOpen)
 
 	# add new row with host up at hosts table
-	def __addDBUpHost(self, ip, mac, os=None, name=None):
-		self.db.add_host('up', self.revisionNumber, ip, mac, os, name)
+	def __addDBupHost(self, ip, mac, os=None, name=None):
+		hostActualID = self.db.add_host('up', self.revisionNumber, ip, mac, os, name) # add host and get associated ID
+		# if host had a name, no modify it
+		hostPreviousID = self.db.retrieve_hostPreviousID(self.auditNumber, mac, hostActualID) # get previous host ID at db
+		if hostPreviousID != -1: # host at db with a previous ID
+			hostLastName = self.db.retrieve_hostName_byHostID(hostPreviousID) # get last host name at database
+			if hostLastName != -1: # host had a name
+				self.db.update_hostName_byID(hostActualID, hostLastName) # host had a name at database, don't change this field in order to not modify user's values
 
 	# add 'down' hosts
 	def __addDBDownHosts(self, macs_up, hosts_scanned):
@@ -356,7 +362,7 @@ class Scan:
 	def __addDBDownHost(self, id_host):
 		down_hostInfo = self.db.retrieve_hostAllInfo_byID(id_host)
 		os, status, id, rev, ip, date, mac, name = down_hostInfo
-		self.db.add_host('down', self.revisionNumber, ip, mac, None, name)
+		self.db.add_host('down', self.revisionNumber, ip, mac, os, name)
 
 	def __actualiceDBtablePuertos(self, hostIDwithPorts, hostIPwithPorts, portsScanned, portsOpen):
 		# add new information to puertos table (ports scanned as open and closed)
@@ -371,12 +377,12 @@ class Scan:
 		check_idHost_with_DBportsValues = self.db.check_tablePuertosValues4ThisHostID(actualHostID)
 		if check_idHost_with_DBportsValues != 1:
 			# search the last ports information associated to this host (mac) at the table, search the maximum previous id of this host(mac) with port values
-			previousHostID = self.db.retrieve_previousHostID(self.auditNumber, mac, actualHostID)
+			previousHostID = self.db.retrieve_hostPreviousID(self.auditNumber, mac, actualHostID)
 			# ckeck if last id has values at table puertos
 			check_idPreviousHost_with_portsValues = self.db.check_tablePuertosValues4ThisHostID(previousHostID)
 			# search last id for this host (mac) with ports values (it is not necessarily the las ID because for the last ID maybe no ports were scanned)
 			while check_idPreviousHost_with_portsValues == -1 and previousHostID > 0:
-				previousHostID = self.db.retrieve_previousHostID(self.auditNumber, mac, previousHostID)
+				previousHostID = self.db.retrieve_hostPreviousID(self.auditNumber, mac, previousHostID)
 				check_idPreviousHost_with_portsValues = self.db.check_tablePuertosValues4ThisHostID(previousHostID)
 			# add previous id_host ports to the actual id_host
 			if check_idPreviousHost_with_portsValues == 1:
@@ -547,7 +553,7 @@ class Scan:
 							#self.db.update_port_estadoANDfecha('closed', id_hostWithPorts, old_port[0])
 
 	def __showHostsIPscannedUp(self, showAllInfo=0):
-		print 'Hosts scanned up: ' + str(self.nm.all_hosts())
+		print 'Hosts scanned up (' + str(len(self.nm.all_hosts())) + '): ' + str(self.nm.all_hosts())
 		print 'My IP: ' + str(self.myIP)
 		if self.scanOptions['discovery'] != 1 and showAllInfo != 0:
 			print 'Hosts scanned up: '
