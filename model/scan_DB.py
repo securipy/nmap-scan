@@ -85,7 +85,7 @@ class ScanDB:
 		return ports
 
 	def formInfoTableHosts(self, hostIDallInfo):
-		os, status, id, id_rev, ip, date_time, mac = hostIDallInfo
+		os, status, id, id_rev, ip, date_time, mac, name = hostIDallInfo
 		os = self.cf.addIndentation(os, '    -')
 		tableInfo = '########################\n'
 		tableInfo = tableInfo + 'Host IP: ' + str(ip) + '\n'
@@ -93,4 +93,5 @@ class ScanDB:
 		tableInfo = tableInfo + '\nHost Mac: ' + str(mac) + '\n'
 		tableInfo = tableInfo + '\nOperating system: ' + str(os) + '\n'
 		tableInfo = tableInfo + '\nStatus: ' + str(status)
+		tableInfo = tableInfo + '\nName: ' + str(name)
 		return tableInfo
