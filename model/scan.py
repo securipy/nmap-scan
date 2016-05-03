@@ -193,11 +193,12 @@ class Scan:
 	# create a .txt file, one per port indicated, with hosts IP up with those ports open
 		# check if a revision and audit were selected
 		self.__check_audit_rev(1)
-		# ask ports to export
-		ports2File = self.ask.ask4ports2search()[1] # list of int numbers as strings, with all ports
-		if ports2File != None:
-			for port in ports2File:
-				self.__createFile4port(port)
+		if self.auditNumber!= None and self.revisionNumber != None:
+			# ask ports to export
+			ports2File = self.ask.ask4ports2search()[1] # list of int numbers as strings, with all ports
+			if ports2File != None:
+				for port in ports2File:
+					self.__createFile4port(port)
 
 	def allInfoHost(self):
 		# create a .txt file or print at console the information associated to a host
@@ -205,16 +206,18 @@ class Scan:
 		self.myIP = self.nt.getMyIP()
 		# check if a revision and audit were selected
 		self.__check_audit_rev(1)
-		# ask how to get the information
-		modeHostInformation = self.ask.askOptionAllInfoHost() # int
-		hostsIP_longFormat = self.ask.ask4hosts2workOptions(self.auditNumber, self.revisionNumber, self.myIP)[1]
-		for hostIP in hostsIP_longFormat:
-			self.__createFile4host(hostIP, modeHostInformation)
+		if self.auditNumber != None and self.revisionNumber != None:
+			# ask how to get the information
+			modeHostInformation = self.ask.askOptionAllInfoHost() # int
+			hostsIP_longFormat = self.ask.ask4hosts2workOptions(self.auditNumber, self.revisionNumber, self.myIP)[1]
+			for hostIP in hostsIP_longFormat:
+				self.__createFile4host(hostIP, modeHostInformation)
 
 	def changeHostName(self):
 		# give an indicative name for each host
 		self.__check_audit_rev(1)
-		self.cn.changeName(self.auditNumber, self.revisionNumber)
+		if self.auditNumber != None and self.revisionNumber != None:
+			self.cn.changeName(self.auditNumber, self.revisionNumber)
 
 	def calcIPbase(self):
 		self.cIP.askAndCalculate()
@@ -248,7 +251,7 @@ class Scan:
 		else:
 			if self.auditNumber == None or self.auditName == None:
 				self.auditNumber, self.auditName = self.ar.selectExistingAudit()
-			if self.revisionNumber == None or self.revisionName == None:
+			if self.auditNumber != None and (self.revisionNumber == None or self.revisionName == None):
 				self.revisionNumber, self.revisionName = self.ar.selectExistingRevision(self.auditNumber)
 
 	# add last revison's hosts if this is the first discovery for actual revision
