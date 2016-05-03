@@ -45,11 +45,11 @@ class SelectAuditRev:
 	def selectExistingAudit(self):
 		auditNumber = None
 		auditName = None
-		while auditNumber == None or auditName == None:
-			auditsDBallInfo = self.db.retrieve_auditsAllInfo()
-			if self.checkDBtableEmpty(auditsDBallInfo) == 1:
-				self.adviseNotExisting('audits')
-			else:
+		auditsDBallInfo = self.db.retrieve_auditsAllInfo()
+		if self.checkDBtableEmpty(auditsDBallInfo) == 1:
+			self.adviseNotExisting('audits')
+		else:
+			while auditNumber == None or auditName == None:
 				self.showDBauditsName(auditsDBallInfo)
 				auditNumber = self.ask.ask4number()
 				auditsDBallInfo = dict((x, y) for x, y in auditsDBallInfo)  # convert to dictionary
@@ -83,15 +83,15 @@ class SelectAuditRev:
 		return auditNumber, auditName, revisionNumber, revisionName
 
 	def selectExistingRevision(self, auditNumber):
+		# select existing revision
 		revisionNumber = None
 		revisionName = None
-		while revisionNumber == None or revisionName == None:
-			# Select existing revision
-			revisions4AuditDBAllInfo = self.db.retrieve_revisonAllInfoByAuditID(auditNumber)
-			if self.checkDBtableEmpty(revisions4AuditDBAllInfo) == 1:
-				self.adviseNotExisting('revisions')
-				print "Create a revision for this audit"
-			else:
+		revisions4AuditDBAllInfo = self.db.retrieve_revisonAllInfoByAuditID(auditNumber)
+		if self.checkDBtableEmpty(revisions4AuditDBAllInfo) == 1:
+			self.adviseNotExisting('revisions')
+			print "Create a revision for this audit"
+		else:
+			while revisionNumber == None or revisionName == None:
 				self.showDBrevisionsName(revisions4AuditDBAllInfo)
 				revisionNumber = self.ask.ask4number()
 				revisions4AuditDBAllInfo = dict((y, z) for x, y, w, z in revisions4AuditDBAllInfo)  # convert to dictionary
