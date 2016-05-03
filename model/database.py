@@ -360,7 +360,7 @@ class Database:
 		else:
 			return -1
 
-	# Retrieve hosts ip and name of the indicated revision
+	# Retrieve hosts ip and name of the indicated revision with maximum id for each ip
 	def retrieve_hostsIDipAndNames_byRevision(self, id_audit, id_rev):
 		# get last information added to the database
 		sql = "SELECT id, ip, name FROM hosts WHERE id_revision = (SELECT id FROM revision WHERE id = '%s' AND id_auditorias = '%s') GROUP BY ip" % (id_rev, id_audit)
@@ -496,6 +496,21 @@ class Database:
 			puertos = self.cur.fetchall() # list of tuples with an integer. Example [(80,), (21,), (22,), (23,)]
 			if puertos != []:
 				return puertos
+			else:
+				return -1
+		else:
+			return -1
+
+	# retrieve port number by port id
+	def retrieve_portNumber_byPortsID(self, id_port):
+		# id_port: tuple
+		if len(id_port) == 1:
+			id_port = id_port + id_port  # avoid tuple to end with coma
+		sql = "SELECT puerto FROM puertos WHERE id IN " + str(id_port)
+		if self.cur.execute(sql) > 0:
+			puertos = self.cur.fetchall()
+			if puertos != []:
+				return puertos  # list of tuples. Example [(80,), (21,), (22,), (23,)]
 			else:
 				return -1
 		else:

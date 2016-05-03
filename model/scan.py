@@ -192,7 +192,7 @@ class Scan:
 	def portsFile(self):
 	# create a .txt file, one per port indicated, with hosts IP up with those ports open
 		# check if a revision and audit were selected
-		self.__check_audit_rev()
+		self.__check_audit_rev(1)
 		# ask ports to export
 		ports2File = self.ask.ask4ports2search()[1] # list of int numbers as strings, with all ports
 		if ports2File != None:
@@ -204,7 +204,7 @@ class Scan:
 		# get my hosts IP
 		self.myIP = self.nt.getMyIP()
 		# check if a revision and audit were selected
-		self.__check_audit_rev()
+		self.__check_audit_rev(1)
 		# ask how to get the information
 		modeHostInformation = self.ask.askOptionAllInfoHost() # int
 		hostsIP_longFormat = self.ask.ask4hosts2workOptions(self.auditNumber, self.revisionNumber, self.myIP)[1]
@@ -213,7 +213,7 @@ class Scan:
 
 	def changeHostName(self):
 		# give an indicative name for each host
-		self.__check_audit_rev()
+		self.__check_audit_rev(1)
 		self.cn.changeName(self.auditNumber, self.revisionNumber)
 
 	def calcIPbase(self):
@@ -237,12 +237,19 @@ class Scan:
 		self.scanOptions4Ports = [self.scanOptions['versionORscript'], self.scanOptions['portsState'], self.scanOptions['custom']] # options for studying ports
 		# as we see, with custom option all the information is saved
 
-	def __check_audit_rev(self):
+	def __check_audit_rev(self, noNew=None):
+		# noNew: if no new audit or revision can be created
 		# check if a revision and audit were selected and their names saved at self.auditName and self.revisionName
-		if self.auditNumber == None or self.auditName == None:
-			self.select_audit()
-		if self.revisionNumber == None or self.revisionName == None:
-			self.select_revision()
+		if noNew == None:
+			if self.auditNumber == None or self.auditName == None:
+				self.select_audit()
+			if self.revisionNumber == None or self.revisionName == None:
+				self.select_revision()
+		else:
+			if self.auditNumber == None or self.auditName == None:
+				self.auditNumber, self.auditName = self.ar.selectExistingAudit()
+			if self.revisionNumber == None or self.revisionName == None:
+				self.revisionNumber, self.revisionName = self.ar.selectExistingRevision(self.auditNumber)
 
 	# add last revison's hosts if this is the first discovery for actual revision
 	def __addDBlastRevisionHosts(self):
@@ -609,11 +616,12 @@ class Scan:
 		# output 'string'
 		info2save = ''
 		for ip in hostsIPwithAport:
-			info2save + ip + '\n'
+			info2save = info2save + ip + '\n'
 		return info2save
 
 	def __checkDBandGetHostsIPwithAport(self, port):
 		# port: string
+		# return a list of strings
 		# check if db has ports for this revision and return those hosts IP
 		if self.db.check_portAtDB(self.auditNumber, self.revisionNumber, port) != -1:
 			hostsIP = []

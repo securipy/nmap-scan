@@ -30,7 +30,7 @@ class ScanDB:
 		hostIDallInfo = self.db.retrieve_hostAllInfo_byID(hostLastID)
 		infoTableHosts = self.formInfoTableHosts(hostIDallInfo)
 		# retrieve info form db table puertos
-		portsNumber4hostID = self.getPortsNumber(hostLastID) # list of one or moreintegers. Example [80, 21, 22, 23]
+		portsNumber4hostID = self.getPortsNumber(hostLastID) # list of one or more integers. Example [80, 21, 22, 23]
 		portsOpenID = self.getPortsOpenID(hostLastID, portsNumber4hostID)
 		infoTablePorts = self.getPortsInfo(portsOpenID)
 		# all information for the host
@@ -60,13 +60,23 @@ class ScanDB:
 		tableInfo = tableInfo + '    - Scripts: ' + str(scripts)
 		return tableInfo
 
+	def showPortInfo(self, portID):
+		portInfo = self.db.retrieve_portAllInfo_byPortID(portID)
+		print self.formPortInfoTablePuertos(portInfo)
+		print ''
+
+	def getPortVersionAsDictionary(self, portID):
+		portInfo = self.db.retrieve_portAllInfo_byPortID(portID)
+		portVersionDictionary = self.cf.createDictionary4portVersion(portInfo[4])
+		return portVersionDictionary
+
 	def getPortsOpenID(self, hostLastID, portsNumber4hostID):
 		if portsNumber4hostID == -1:
 			portsID = -1
 		else:
 			portsID = self.getPortsLastID(hostLastID, portsNumber4hostID)  # tuple of integers. Example (10, 11, 12 ,13)
-			portsID = self.db.retrieve_portsOpenID_byPortID(portsID)
-		return portsID
+			portsID = self.db.retrieve_portsOpenID_byPortID(portsID)  # list of tuples. Example [(1,), (2,), (3,), (4,)]
+		return portsID  # list of tuples. Example [(1,), (2,), (3,), (4,)]
 
 	def getPortsLastID(self, hostID, ports4hostID):
 		portsLastID=[]

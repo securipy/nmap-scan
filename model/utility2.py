@@ -46,7 +46,6 @@ class ChangeFormat:
         hostsIP_shortFormat = self.hosts2nmapFormat(hostsIP_longFormat)
         return hostsIP_shortFormat,hostsIP_longFormat
 
-
     def hosts2completeFormat(self,hostsIPnmapFormat):
         # variables:
         # - input
@@ -168,6 +167,41 @@ class ChangeFormat:
         separate = re.compile(separator)
         listParts = separate.split(str2separate)
         return listParts
+
+    def createListOfTuplesFrom2Lists(self, list1, list2):
+        # example list1 = [1,2,3] and list2 = [4,5,6] -> [(1,4), (2,5), (3,6)]
+        if len(list1) != len(list2):
+            return -1
+        else:
+            list2return = []
+            for i in range(len(list1)):
+                tuple4list = (list1[i], list2[i])
+                list2return.append(tuple4list)
+            return list2return
+
+    def createDictionary4portVersion(self, portVersion):
+        portVersionList = portVersion.split(' \n') # save each line in a element of a list
+        portVersion_product = self.eliminateIndicatedCharacters(portVersionList[0], 'product: ')
+        portVersion_version = self.eliminateIndicatedCharacters(portVersionList[1], 'version: ')
+        portVersion_name = self.eliminateIndicatedCharacters(portVersionList[2], 'name: ')
+        portVersion_extrainfo = self.eliminateIndicatedCharacters(portVersionList[3], 'extrainfo: ')
+        portVersionDictionary = {'product':portVersion_product,'version':portVersion_version, 'name':portVersion_name,'extrainfo':portVersion_extrainfo}
+        return portVersionDictionary
+
+    def createTuple(self, what2convert):
+        if isinstance(what2convert, int) or isinstance(what2convert, str):
+            return (what2convert,)
+        elif isinstance(what2convert, list):
+            return tuple(what2convert)
+        else:
+            return what2convert
+
+    def createList(self, what2convert):
+        if isinstance(what2convert, int):
+            return [what2convert]
+        else:
+            return what2convert
+
 
     def hosts2nmapFormat (self, IPTupleCompleteIP):
         # converts a tuple to the Nmap required format

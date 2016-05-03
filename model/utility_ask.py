@@ -49,6 +49,7 @@ class Ask:
 		return number
 
 	def ask4ListOptionNumber(self, availableOptionsNumbers):
+		# availableOptionsNumbers: list
 		optionNumber = ''
 		while optionNumber == '':
 			optionNumber = self.ask4number()

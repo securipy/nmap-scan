@@ -23,11 +23,15 @@ class ChangeHostName:
 		self.db = Database()
 
 	def changeName(self, auditNumber, revisionNumber):
-		hostsIDavailable = self.showListHostsIPandHostsNames(auditNumber, revisionNumber) # options available to select a host
-		hostIDselected = self.ask.ask4ListOptionNumber(hostsIDavailable)
+		hostIDselected = self.selectHostID(auditNumber, revisionNumber)
 		newName = self.ask.ask4name("Type host's new")
 		self.db.update_hostName_byID(hostIDselected, newName)
 		print 'Name changed'
+
+	def selectHostID(self, auditNumber, revisionNumber):
+		hostsIDavailable = self.showListHostsIPandHostsNames(auditNumber, revisionNumber)  # options available to select a host
+		hostIDselected = self.ask.ask4ListOptionNumber(hostsIDavailable)
+		return hostIDselected
 
 	def showListHostsIPandHostsNames(self, auditNumber, revisionNumber):
 		hostsIDipAndNames = self.db.retrieve_hostsIDipAndNames_byRevision(auditNumber, revisionNumber) # example: [(8, u'192.168.1.1', u'None'), (9, u'192.168.1.34', u'None'), (10, u'192.168.1.37', u'None')]
