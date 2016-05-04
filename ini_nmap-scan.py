@@ -48,7 +48,7 @@ class add(object):
 			print color('magenta', '6. Script')
 			print color('magenta', '7. Custom Parameters')
 			print color('magenta', '8. Ports')
-			print color('magenta', '9. Generate file ports')
+			print color('magenta', '9. Get hosts with indicated open ports')
 			print color('magenta', '10. Get all information of a host')
 			print color('magenta', "11. Change host's name")
 			print color('magenta', '12. What is my base IP')
