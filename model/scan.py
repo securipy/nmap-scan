@@ -194,11 +194,15 @@ class Scan:
 		# check if a revision and audit were selected
 		self.__check_audit_rev(1)
 		if self.auditNumber!= None and self.revisionNumber != None:
-			# ask ports to export
-			ports2File = self.ask.ask4ports2search()[1] # list of int numbers as strings, with all ports
-			if ports2File != None:
-				for port in ports2File:
-					self.__createFile4port(port)
+			revision_with_values = self.db.check_tableHostsValues4ThisRevision(self.auditNumber, self.revisionNumber)
+			if revision_with_values != -1:
+				# ask ports to export
+				ports2File = self.ask.ask4ports2search()[1] # list of int numbers as strings, with all ports
+				if ports2File != None:
+					for port in ports2File:
+						self.__createFile4port(port)
+			else:
+				print color('rojo', 'No hosts discovered for this revision')
 
 	def allInfoHost(self):
 		# create a .txt file or print at console the information associated to a host
@@ -207,17 +211,25 @@ class Scan:
 		# check if a revision and audit were selected
 		self.__check_audit_rev(1)
 		if self.auditNumber != None and self.revisionNumber != None:
-			# ask how to get the information
-			modeHostInformation = self.ask.askOptionAllInfoHost() # int
-			hostsIP_longFormat = self.ask.ask4hosts2workOptions(self.auditNumber, self.revisionNumber, self.myIP)[1]
-			for hostIP in hostsIP_longFormat:
-				self.__createFile4host(hostIP, modeHostInformation)
+			revision_with_values = self.db.check_tableHostsValues4ThisRevision(self.auditNumber, self.revisionNumber)
+			if revision_with_values != -1:
+				# ask how to get the information
+				modeHostInformation = self.ask.askOptionAllInfoHost() # int
+				hostsIP_longFormat = self.ask.ask4hosts2workOptions(self.auditNumber, self.revisionNumber, self.myIP)[1]
+				for hostIP in hostsIP_longFormat:
+					self.__createFile4host(hostIP, modeHostInformation)
+			else:
+				print color('rojo', 'No hosts discovered for this revision')
 
 	def changeHostName(self):
 		# give an indicative name for each host
 		self.__check_audit_rev(1)
 		if self.auditNumber != None and self.revisionNumber != None:
-			self.cn.changeName(self.auditNumber, self.revisionNumber)
+			revision_with_values = self.db.check_tableHostsValues4ThisRevision(self.auditNumber, self.revisionNumber)
+			if revision_with_values != -1:
+				self.cn.changeName(self.auditNumber, self.revisionNumber)
+			else:
+				print color('rojo', 'No hosts discovered for this revision')
 
 	def calcIPbase(self):
 		self.cIP.askAndCalculate()
