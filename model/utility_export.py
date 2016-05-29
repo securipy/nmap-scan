@@ -35,10 +35,6 @@ class UtilityExport:
 		file.close()	# end work with file
 		self.ms.adviseFileCreated(fileName)
 
-	def createFileHost(self, auditName, revisionName, save_path, hostIP, hostMac):
-		# fileName, filePathAndName = self.__createFileName()
-		print 'in process'
-
 	def __checkFileExists(self, fileName, savePath):
 		filePathAndName = os.path.join(savePath, fileName)
 		if self.ck.checkFileExists(filePathAndName) == 1:
