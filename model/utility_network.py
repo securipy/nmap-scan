@@ -28,7 +28,10 @@ class NetworkUtility:
 			try:
 				myHostIP = self.getInterfaceIP('eth0') # IP from wired interface
 			except:	# none network interface is used
-				myHostIP = None
+				try:
+					myHostIP = self.getInterfaceIP('enp4s0')  # IP from wired interface
+				except:
+					myHostIP = None
 		return myHostIP
 
 	def getInterfaceIP(self, interface):
