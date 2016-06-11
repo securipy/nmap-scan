@@ -437,6 +437,7 @@ class Scan:
 	def __getScannedOperatingSystem(self, ip, mac):
 		# example, for a mobile phone this information will be saved: 'osclass': {'vendor': 'Apple', 'osfamily': 'iOS', 'type': 'phone', 'osgen': '6.X', 'accuracy': '100'}
 		# example2, for a pc not retrieves osclass, only vendor: {'status': {'state': 'up', 'reason': 'arp-response'}, 'hostnames': [], 'vendor': {'xx:xx:xx:xx:xx:xx': 'Microsoft'}, 'addresses': {'mac': '20:62:74:DE:4D:88', 'ipv4': '172.19.221.10'}}
+		# example3, other forms depending of the nmap version
 		if self.scanOptions['discovery'] == 1:
 			return None
 		else:
@@ -447,13 +448,30 @@ class Scan:
 
 	def __getScannedOperatingSystemInfoIndividually(self, ip, mac):
 		# retreive information search directly for 'vendor', 'osfamily' etc
-		vendor = self.__getScannedOSvendor(ip,mac)
-		osfamily = self.__getScannedOSfamily(ip,mac)
-		type = self.__getScannedOStype(ip,mac)
-		osgen = self.__getScannedOSgen(ip,mac)
-		accuracy = self.__getScannedOSaccuracy(ip,mac)
-		OS = 'vendor: %s \nosfamily: %s \ntype: %s \nosgen: %s  \naccuracy: %s' %(vendor, osfamily, type, osgen, accuracy)
+		OS = self.__getScannedOperatingSystemInfoIndividuallyOption1(ip,mac)
+		if 'None' in OS:
+			OS2 = self.__getScannedOperatingSystemInfoIndividuallyOption2(ip)
+			if OS2 != -1:
+				OS = OS2
 		return OS
+
+	def __getScannedOperatingSystemInfoIndividuallyOption1(self,ip,mac):
+		vendor = self.__getScannedOSvendor(ip, mac)
+		osfamily = self.__getScannedOSfamily(ip, mac)
+		ostype = self.__getScannedOStype(ip, mac)
+		osgen = self.__getScannedOSgen(ip, mac)
+		accuracy = self.__getScannedOSaccuracy(ip, mac)
+		OS = 'vendor: %s \nosfamily: %s \ntype: %s \nosgen: %s  \naccuracy: %s' % (vendor, osfamily, ostype, osgen, accuracy)
+		return OS
+
+	def __getScannedOperatingSystemInfoIndividuallyOption2(self,ip):
+		# check in Ubuntu with Nmap version 7.01
+		vendor, osfamily, ostype, osgen, accuracy = self.__getScannedOSinfoOption2(ip)
+		if vendor != None and osfamily != None and ostype != None and osgen != None and accuracy != None:
+			OS = "vendor: %s \nosfamily: %s \ntype: %s \nosgen: %s  \naccuracy: %s" % (vendor, osfamily, ostype, osgen, accuracy)
+			return self.cf.eliminateCharacters(OS)# save '' at database crashes the program
+		else:
+			return -1
 
 	def __getScannedOSvendor(self,ip,mac):
 		return self.__getScannedOS(ip,mac,'vendor')
@@ -473,6 +491,52 @@ class Scan:
 	def __getScannedOS(self,ip,mac,info):
 		try:
 			return self.nm[ip][info][mac]
+		except:
+			return None
+
+	def __getScannedOSinfoOption2(self, ip):
+		osInfo = self.__getScannedOS2(ip) # type list
+		if osInfo != None:
+			vendor = ""
+			osfamily = ""
+			ostype = ""
+			osgen = ""
+			accuracy = ""
+			noneCount = 0
+			for i in range(len(osInfo)):
+				infoI = self.__getScannedOS2part(osInfo,i)
+				if infoI != None:
+					vendor = vendor + str(infoI['vendor']) + ', '
+					osfamily = osfamily + str(infoI['osfamily']) + ', '
+					ostype = ostype + str(infoI['type']) + ', '
+					osgen = osgen + str(infoI['osgen']) + ', '
+					accuracy = accuracy + str(infoI['accuracy']) + ', '
+			if vendor != "": # no information was saved
+				# elminate last ', '
+				vendor = self.cf.eliminateLastCharacters(vendor,2)
+				osfamily = self.cf.eliminateLastCharacters(osfamily, 2)
+				ostype = self.cf.eliminateLastCharacters(ostype, 2)
+				osgen = self.cf.eliminateLastCharacters(osgen, 2)
+				accuracy = self.cf.eliminateLastCharacters(accuracy, 2)
+			else:
+				osInfo = None
+		if osInfo == None:
+			vendor = None
+			osfamily = None
+			ostype = None
+			osgen = None
+			accuracy = None
+		return vendor, osfamily, ostype, osgen, accuracy
+
+	def __getScannedOS2(self,ip):
+		try:
+			return self.nm[ip]['osmatch'] # type list
+		except:
+			return None
+
+	def __getScannedOS2part(self,osInfo, i):
+		try:
+			return osInfo[i]['osclass'][0]	#type(os[i]['osclass']) = list
 		except:
 			return None
 

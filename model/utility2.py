@@ -202,7 +202,6 @@ class ChangeFormat:
         else:
             return what2convert
 
-
     def hosts2nmapFormat (self, IPTupleCompleteIP):
         # converts a tuple to the Nmap required format
         # example: ('192.168.1.1', '192.168.1.61', '193.168.1.1', '193.168.1.61') -> '192-193.168.1.1,61'
@@ -212,18 +211,6 @@ class ChangeFormat:
         # - output. hostsIPnmapFormat: string
         hostsIPnmapFormat = str(self.cfNmap.convert2nmapFormat(IPTupleCompleteIP)) # convert to string, if not it is instace type
         return hostsIPnmapFormat
-
-    def eliminateCharacters (self, string2change):
-        # sql queries do not accept some characters
-        rmCh1 = string2change.replace("{", "")
-        rmCh2 = rmCh1.replace("}", "")
-        rmCh3 = rmCh2.replace('"', "")
-        stringFinal = rmCh3.replace("'", "")
-        return stringFinal
-
-    def eliminateIndicatedCharacters(self, string2change, what2eliminate):
-        newString = string2change.replace(what2eliminate,"")
-        return newString
 
     def convertString2Int (self,string2convert):
         # input: type string
@@ -275,6 +262,23 @@ class ChangeFormat:
         # eliminate characters that can produce error at a sql statement
         str = self.eliminateCharacters(str)
         return str
+
+    def eliminateCharacters (self, string2change):
+        # sql queries do not accept some characters
+        rmCh1 = string2change.replace("{", "")
+        rmCh2 = rmCh1.replace("}", "")
+        rmCh3 = rmCh2.replace('"', "")
+        stringFinal = rmCh3.replace("'", "")
+        return stringFinal
+
+    def eliminateIndicatedCharacters(self, string2change, what2eliminate):
+        newString = string2change.replace(what2eliminate,"")
+        return newString
+
+    def eliminateLastCharacters(self, string2change, numCharacters2delete):
+        # numCharacters2delete = int
+        newString = string2change[:-numCharacters2delete]
+        return newString
 
     def eliminateTuplesAtList(self, listTuples, returnAlwaysList=-1):
         # output: int or list of integers
