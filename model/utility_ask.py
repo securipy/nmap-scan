@@ -68,7 +68,7 @@ class Ask:
 				# scan all discovered hosts, down hosts too because they can change to up
 				hosts2scan_longFormat = self.db.retrieve_hostsIP_byRevision(auditNumber, revisionNumber)
 				hosts2scan_shortFormat, hosts2scan_longFormat = self.cf.getShortLongFormatFromLongFormat(hosts2scan_longFormat, myIP)
-				print "Hosts: " + str(hosts2scan_longFormat)
+				print "Hosts: " + str(self.cf.convertListTuple2string(hosts2scan_longFormat))
 				print "Number of hosts: " + str(len(hosts2scan_longFormat))
 			else:
 				print color('rojo', 'No hosts ip discovered for this revision')

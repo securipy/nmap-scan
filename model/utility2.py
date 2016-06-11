@@ -251,17 +251,26 @@ class ChangeFormat:
             portsReturn.append(ports)
         return portsReturn
 
-    def convertDictionary2String(self, dictionary):
+    def convertDictionary2string(self, dictionary):
         # save dictionary values in a list
         list = []
         for key, value in dictionary.iteritems():
             value2add = '%s: %s' %(key, value)
             list.append(value2add)
         # convert list to string
-        str = ' \n'.join(list)
+        string = ' \n'.join(list)
         # eliminate characters that can produce error at a sql statement
-        str = self.eliminateCharacters(str)
-        return str
+        string = self.eliminateCharacters(string)
+        return string
+
+    def convertListTuple2string(self, what2change):
+        # example1 ('192.168.1.1', '192.168.1.35', '192.168.1.36') -> '192.168.1.1, 192.168.1.35, 192.168.1.36'
+        # example2 ['192.168.1.1', '192.168.1.35', '192.168.1.36'] -> '192.168.1.1, 192.168.1.35, 192.168.1.36'
+        string = ''
+        for tupleElement in what2change:
+            string = string + tupleElement + ', '
+        string = self.eliminateLastCharacters(string, 2) # delete last ', '
+        return string
 
     def eliminateCharacters (self, string2change):
         # sql queries do not accept some characters

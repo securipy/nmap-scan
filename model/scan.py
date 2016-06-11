@@ -442,7 +442,7 @@ class Scan:
 			return None
 		else:
 			try:
-				return self.cf.convertDictionary2String(self.nm[ip]['osclass'])
+				return self.cf.convertDictionary2string(self.nm[ip]['osclass'])
 			except: # if not information are retrieved in 'osclass' maybe are at other form like at example2
 				return self.__getScannedOperatingSystemInfoIndividually(ip, mac)
 
@@ -588,7 +588,7 @@ class Scan:
 	def __getScannedPortScript(self, hostWithPorts, port):
 		script = self.__getScannedPortInfo(hostWithPorts,port,'script') # dictionary
 		if script != None:
-			script = self.cf.convertDictionary2String(script)
+			script = self.cf.convertDictionary2string(script)
 		return script
 
 	def __getScannedPortState(self, hostWithPorts, port):
@@ -639,7 +639,7 @@ class Scan:
 							#self.db.update_port_estadoANDfecha('closed', id_hostWithPorts, old_port[0])
 
 	def __showHostsIPscannedUp(self, showAllInfo=0):
-		print 'Hosts scanned up (' + str(len(self.nm.all_hosts())) + '): ' + str(self.nm.all_hosts())
+		print 'Hosts scanned up (' + str(len(self.nm.all_hosts())) + '): ' + str(self.cf.convertListTuple2string(self.nm.all_hosts()))
 		print 'My IP: ' + str(self.myIP)
 		if self.scanOptions['discovery'] != 1 and showAllInfo != 0:
 			print 'Hosts scanned up: '
