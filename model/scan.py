@@ -51,7 +51,7 @@ class Scan:
 		self.scanCustomNotAllowedOptions = ['-iR',
 											'-iL',
 											'-iR',
-											'--exlucefile',
+											'--exludefile',
 											'-oN',
 											'-oX',
 											'-oS',
