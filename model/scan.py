@@ -48,8 +48,7 @@ class Scan:
 		self.save_path = 'modules/nmap-scan/model/exportedFiles' # where save .txt files
 		self.scanOptions = {'discovery':0, 'operatingSystem':0, 'versionORscript':0, 'custom':0, 'portsState':0} # what the user want to scan. Values: -1 (not used) or 1 (used)
 		# not allowed commands at CustomParameters option (black list). Those that modify input or output information
-		self.scanCustomNotAllowedOptions = ['-iR',
-											'-iL',
+		self.scanCustomNotAllowedOptions = ['-iL',
 											'-iR',
 											'--exludefile',
 											'-oN',
