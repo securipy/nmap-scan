@@ -49,14 +49,16 @@ class SelectAuditRev:
 		if self.checkDBtableEmpty(auditsDBallInfo) == 1:
 			self.adviseNotExisting('audits')
 		else:
-			while auditNumber == None or auditName == None:
+			while auditName == None: # check it, imagine somebody erased manually the name at the db
 				self.showDBauditsName(auditsDBallInfo)
-				auditNumber = self.ask.ask4number()
 				auditsDBallInfo = dict((x, y) for x, y in auditsDBallInfo)  # convert to dictionary
-				try:
-					auditName = auditsDBallInfo[int(auditNumber)]
-				except:
-					self.adviseDoesNotExist('Audit')
+				while auditNumber == None:
+					auditNumber = self.ask.ask4number()
+					if auditNumber not in auditsDBallInfo.keys():
+						self.adviseDoesNotExist('Audit')
+						auditNumber = None
+					else:
+						auditName = auditsDBallInfo[auditNumber]
 		return auditNumber, auditName
 
 	def selectRevision(self, auditNumber, auditName):
@@ -91,14 +93,16 @@ class SelectAuditRev:
 			self.adviseNotExisting('revisions')
 			print "Create a revision for this audit"
 		else:
-			while revisionNumber == None or revisionName == None:
+			while revisionName == None: # check it, imagine somebody erased manually the name at the db
 				self.showDBrevisionsName(revisions4AuditDBAllInfo)
-				revisionNumber = self.ask.ask4number()
 				revisions4AuditDBAllInfo = dict((y, z) for x, y, w, z in revisions4AuditDBAllInfo)  # convert to dictionary
-				try:
-					revisionName = revisions4AuditDBAllInfo[int(revisionNumber)]
-				except:
-					self.adviseDoesNotExist('Revision for this audit')
+				while revisionNumber == None:
+					revisionNumber = self.ask.ask4number()
+					if revisionNumber not in revisions4AuditDBAllInfo.keys():
+						self.adviseDoesNotExist('Revision for this audit')
+						revisionNumber = None
+					else:
+						revisionName = revisions4AuditDBAllInfo[int(revisionNumber)]
 		return revisionNumber, revisionName
 
 	def checkAuditExistsAtDB(self, auditNewName):
