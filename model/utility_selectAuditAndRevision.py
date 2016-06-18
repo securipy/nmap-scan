@@ -28,37 +28,50 @@ class SelectAuditRev:
 		# initialice elements
 		auditNumber = None
 		auditName = None
+		auditOption = 0
 		while auditNumber == None or auditName == None:
 			print color('bcyan', 'Select audit')
-			print color('cyan','1. New audit\n2. Existing audit')
-			auditOption = self.ask.ask4number()
+			auditsDBallInfo = self.db.retrieve_auditsAllInfo()
+			if self.checkDBAudit(auditsDBallInfo) == 1:
+				print color('cyan','1. New audit\n2. Existing audit')
+				auditOption = self.ask.ask4number()
+			else:
+				self.adviseNotExisting('audits',-1)
+				self.adviseCreateNew('audit')
+				auditOption = 1
 			if auditOption == 1: # add new audit
-				auditName = self.ask.ask4name('Audit')
-				if self.checkAuditExistsAtDB(auditName) == 1:
-					self.adviseRepeatedName()
-				else:
-					auditNumber = self.db.add_audit(auditName)
+				auditName, auditNumber = self.createNewAudit()
 			elif auditOption == 2: # select existing audit
-				auditNumber, auditName = self.selectExistingAudit()
+				auditNumber, auditName = self.selectExistingAudit(auditsDBallInfo)
 		return auditNumber, auditName
 
-	def selectExistingAudit(self):
+	def checkDBAudit(self, auditsDBallInfo):
+		if self.checkDBtableEmpty(auditsDBallInfo) == 1:
+			return -1
+		else:
+			return 1
+
+	def createNewAudit(self):
+		auditName = self.ask.ask4name('Audit')
+		if self.checkAuditExistsAtDB(auditName) == 1:
+			self.adviseRepeatedName()
+		else:
+			auditNumber = self.db.add_audit(auditName)
+		return auditName, auditNumber
+
+	def selectExistingAudit(self, auditsDBallInfo):
 		auditNumber = None
 		auditName = None
-		auditsDBallInfo = self.db.retrieve_auditsAllInfo()
-		if self.checkDBtableEmpty(auditsDBallInfo) == 1:
-			self.adviseNotExisting('audits')
-		else:
-			while auditName == None: # check it, imagine somebody erased manually the name at the db
-				self.showDBauditsName(auditsDBallInfo)
-				auditsDBallInfo = dict((x, y) for x, y in auditsDBallInfo)  # convert to dictionary
-				while auditNumber == None:
-					auditNumber = self.ask.ask4number()
-					if auditNumber not in auditsDBallInfo.keys():
-						self.adviseDoesNotExist('Audit')
-						auditNumber = None
-					else:
-						auditName = auditsDBallInfo[auditNumber]
+		while auditName == None: # check it, imagine somebody erased manually the name at the db
+			self.showDBauditsName(auditsDBallInfo)
+			auditsDBallInfo = dict((x, y) for x, y in auditsDBallInfo)  # convert to dictionary
+			while auditNumber == None:
+				auditNumber = self.ask.ask4number()
+				if auditNumber not in auditsDBallInfo.keys():
+					self.adviseDoesNotExist('Audit')
+					auditNumber = None
+				else:
+					auditName = auditsDBallInfo[auditNumber]
 		return auditNumber, auditName
 
 	def selectRevision(self, auditNumber, auditName):
@@ -138,5 +151,11 @@ class SelectAuditRev:
 	def adviseDoesNotExist(self, whatDoesNotExist):
 		print color('rojo', str(whatDoesNotExist)+ ' does not exist\n')
 
-	def adviseNotExisting(self, whatDoesNotExist):
-		print color('rojo', 'No existing ' + str(whatDoesNotExist) + '\n')
+	def adviseNotExisting(self, whatDoesNotExist, newline=1):
+		print color('rojo', 'No existing ' + str(whatDoesNotExist))
+		if newline == 1:
+			print '\n'
+
+
+	def adviseCreateNew(self, what2create):
+		print color('rojo', 'Create new ' + str(what2create) + '\n')
