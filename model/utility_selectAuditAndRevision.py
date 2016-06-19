@@ -101,7 +101,7 @@ class SelectAuditRev:
 			self.adviseRepeatedName()
 		else:
 			revisionNumber = self.db.add_revision(int(auditNumber), revisionName)
-		return revisionName, revisionNumber
+		return revisionNumber, revisionName
 
 	def selectExistingRevision(self, revisions4AuditDBAllInfo):
 		# select existing revision
