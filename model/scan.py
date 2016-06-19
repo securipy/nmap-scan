@@ -261,9 +261,11 @@ class Scan:
 				self.select_revision()
 		else:
 			if self.auditNumber == None or self.auditName == None:
-				self.auditNumber, self.auditName = self.ar.selectExistingAudit()
+				auditsDBallInfo = self.db.retrieve_auditsAllInfo()
+				self.auditNumber, self.auditName = self.ar.selectExistingAudit(auditsDBallInfo)
 			if self.auditNumber != None and (self.revisionNumber == None or self.revisionName == None):
-				self.revisionNumber, self.revisionName = self.ar.selectExistingRevision(self.auditNumber)
+				revisions4AuditDBAllInfo = self.db.retrieve_revisonAllInfoByAuditID(self.auditNumber)
+				self.revisionNumber, self.revisionName = self.ar.selectExistingRevision(revisions4AuditDBAllInfo)
 
 	# add last revison's hosts if this is the first discovery for actual revision
 	def __addDBlastRevisionHosts(self):
