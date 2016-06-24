@@ -205,8 +205,7 @@ class Scan:
 
 	def allInfoHost(self):
 		# create a .txt file or print at console the information associated to a host
-		# get my hosts IP
-		self.myIP = self.nt.getMyIP()
+		# this option must have into account myIP because DB can have other IP with equal value
 		# check if a revision and audit were selected
 		self.__check_audit_rev(1)
 		if self.auditNumber != None and self.revisionNumber != None:
@@ -214,7 +213,7 @@ class Scan:
 			if revision_with_values != -1:
 				# ask how to get the information
 				modeHostInformation = self.ask.askOptionAllInfoHost() # int
-				hostsIP_longFormat = self.ask.ask4hosts2workOptions(self.auditNumber, self.revisionNumber, self.myIP)[1]
+				hostsIP_longFormat = self.ask.ask4hosts2workOptions(self.auditNumber, self.revisionNumber, None)[1]
 				for hostIP in hostsIP_longFormat:
 					self.__createFile4host(hostIP, modeHostInformation)
 			else:
