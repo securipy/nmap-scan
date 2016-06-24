@@ -246,13 +246,13 @@ class Scan:
 			return -1
 
 	def __actualiceOptions(self):
-		# know type of scan
+		# know type of scan. Save actualized value for take it into account
 		self.scanOptions4Hosts = [self.scanOptions['discovery'], self.scanOptions['operatingSystem'], self.scanOptions['custom']] # options for studying ports
 		self.scanOptions4Ports = [self.scanOptions['versionORscript'], self.scanOptions['portsState'], self.scanOptions['custom']] # options for studying ports
 		# as we see, with custom option all the information is saved
 
 	def __check_audit_rev(self, noNew=None):
-		# noNew: if no new audit or revision can be created
+		# noNew: if no new audit or revision can be created beacuse the selected option only works with information at DB, no creating new
 		# check if a revision and audit were selected and their names saved at self.auditName and self.revisionName
 		if noNew == None:
 			if self.auditNumber == None or self.auditName == None:
@@ -262,10 +262,16 @@ class Scan:
 		else:
 			if self.auditNumber == None or self.auditName == None:
 				auditsDBallInfo = self.db.retrieve_auditsAllInfo()
-				self.auditNumber, self.auditName = self.ar.selectExistingAudit(auditsDBallInfo)
+				if self.ar.checkDBAudit(auditsDBallInfo) == 1:
+					self.auditNumber, self.auditName = self.ar.selectExistingAudit(auditsDBallInfo)
+				else:
+					self.ar.adviseNotExisting('audits')
 			if self.auditNumber != None and (self.revisionNumber == None or self.revisionName == None):
 				revisions4AuditDBAllInfo = self.db.retrieve_revisonAllInfoByAuditID(self.auditNumber)
-				self.revisionNumber, self.revisionName = self.ar.selectExistingRevision(revisions4AuditDBAllInfo)
+				if self.ar.checkDBtableEmpty(revisions4AuditDBAllInfo) != 1:
+					self.revisionNumber, self.revisionName = self.ar.selectExistingRevision(revisions4AuditDBAllInfo)
+				else:
+					self.ar.adviseNotExisting('revisions for this audit')
 
 	# add last revison's hosts if this is the first discovery for actual revision
 	def __addDBlastRevisionHosts(self):
@@ -439,6 +445,7 @@ class Scan:
 		# example, for a mobile phone this information will be saved: 'osclass': {'vendor': 'Apple', 'osfamily': 'iOS', 'type': 'phone', 'osgen': '6.X', 'accuracy': '100'}
 		# example2, for a pc not retrieves osclass, only vendor: {'status': {'state': 'up', 'reason': 'arp-response'}, 'hostnames': [], 'vendor': {'xx:xx:xx:xx:xx:xx': 'Microsoft'}, 'addresses': {'mac': '20:62:74:DE:4D:88', 'ipv4': '172.19.221.10'}}
 		# example3, other forms depending of the nmap version
+		# checked with in Ubuntu with Nmap version 7.01 and in OS X with Nmap version 6.49BETA5
 		if self.scanOptions['discovery'] == 1:
 			return None
 		else:
@@ -448,7 +455,7 @@ class Scan:
 				return self.__getScannedOperatingSystemInfoIndividually(ip, mac)
 
 	def __getScannedOperatingSystemInfoIndividually(self, ip, mac):
-		# retreive information search directly for 'vendor', 'osfamily' etc
+		# retrieve information search directly for 'vendor', 'osfamily' etc
 		OS = self.__getScannedOperatingSystemInfoIndividuallyOption1(ip,mac)
 		if 'None' in OS:
 			OS2 = self.__getScannedOperatingSystemInfoIndividuallyOption2(ip)

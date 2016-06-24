@@ -155,7 +155,7 @@ class SelectAuditRev:
 	def adviseNotExisting(self, whatDoesNotExist, newline=1):
 		print color('rojo', 'No existing ' + str(whatDoesNotExist))
 		if newline == 1:
-			print '\n'
+			print ''
 
 	def adviseCreateNew(self, what2create):
 		print 'Create ' + str(what2create) + '\n'

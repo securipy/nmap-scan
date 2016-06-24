@@ -24,7 +24,7 @@ class NetworkUtility:
 	def getMyIP(self):
 		# IP form wireless interface
 		myHostIP = socket.gethostbyname(socket.gethostname())
-		if self.ck.checkIPstartsWith127(myHostIP) == -1: # no wireless interface is used
+		if self.ck.checkIPstartsWith127(myHostIP) == -1: # no wireless interface is used, get IP in a different way
 			try:
 				myHostIP = self.getInterfaceIP('eth0') # IP from wired interface
 			except:	# none network interface is used
