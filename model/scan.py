@@ -360,7 +360,7 @@ class Scan:
 		# add last ID host ports. One time for each host ID, neccesary to not forget ports scanned in the past for a host
 		self.__addDBLastIDhostPorts(hostIP, hostID, mac)
 		if portsWereScanned == 1:
-			# get ports up
+			# get ports open
 			hostPortsOpen = self.__getScannedPortsByState(hostIP, hostPortsScanned_longFormat)[0]
 			# show scanned information
 			self.__showPortsScanned(hostIP, hostPortsOpen)
@@ -393,7 +393,7 @@ class Scan:
 		self.db.add_host('down', self.revisionNumber, ip, mac, os, name)
 
 	def __actualiceDBtablePuertos(self, hostIDwithPorts, hostIPwithPorts, portsScanned, portsOpen):
-		# add new information to puertos table (ports scanned as open and closed)
+		# add new information to puertos table (all ports' states are allowed)
 		self.__addDBscannedPorts(hostIDwithPorts, hostIPwithPorts, portsScanned)
 		# add 'closed' ports. Ports that were open but now they are closed (for options where if ports are not retrieved as scanned ports it means these ports are closed)
 		self.__addDBactualicePorts2closed(hostIDwithPorts, portsOpen)
