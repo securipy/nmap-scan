@@ -100,7 +100,7 @@ class ScanDB:
 		tableInfo = '########################\n'
 		tableInfo = tableInfo + 'Host IP: ' + str(ip) + '\n'
 		tableInfo = tableInfo + '########################\n'
-		tableInfo = tableInfo + '\nHost Mac: ' + str(mac) + '\n'
+		tableInfo = tableInfo + '\nHost MAC: ' + str(mac) + '\n'
 		tableInfo = tableInfo + '\nOperating system: ' + str(os) + '\n'
 		tableInfo = tableInfo + '\nStatus: ' + str(status)
 		tableInfo = tableInfo + '\nName: ' + str(name)
