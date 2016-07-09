@@ -101,15 +101,42 @@ class ChangeFormat:
         return rangeNumbers
 
     def createRange4completeIP(self, first_ip, last_ip): # ip [=] string '1.2.3.4'
-        # for ip class C
+        # for all ip classes
         # example: first_ip = '192.168.1.1' and last_ip = '192.168.1.4' -> range_ip = ['192.168.1.1', '192.168.1.2', '192.168.1.3', '192.168.1.4']
-        first_ip_ListParts = re.compile('\.').split(first_ip) # ['1','2','3','4']
-        last_ip_ListParts = re.compile('\.').split(last_ip)
-        ip_beginning = '%s.%s.%s.' %(first_ip_ListParts[0],first_ip_ListParts[1],first_ip_ListParts[2]) # ip class C
+        [ipFirst1, ipFirst2, ipFirst3, ipFirst4] = re.compile('\.').split(first_ip) # ['1','2','3','4']
+        [ipFirst1, ipFirst2, ipFirst3, ipFirst4] = [int(ipFirst1), int(ipFirst2), int(ipFirst3), int(ipFirst4)]
+        [ipLast1, ipLast2, ipLast3, ipLast4] = re.compile('\.').split(last_ip)
+        [ipLast1, ipLast2, ipLast3, ipLast4] = [int(ipLast1), int(ipLast2), int(ipLast3), int(ipLast4)]
         ipRange = []
-        for number in range(int(first_ip_ListParts[-1]),int(last_ip_ListParts[-1])+1):
-            ipRange.append(ip_beginning+str(number))
-        return ipRange
+        part1 = ipFirst1
+        while part1 <= ipLast1:
+            if part1 == ipFirst1:
+                part2 = ipFirst2
+            else:
+                part2 = 0
+            while part2 <= 255:
+                if part2 == ipFirst2 and part1 == ipFirst1:
+                    part3 = ipFirst3
+                else:
+                    part3 = 0
+                while part3 <= 255:
+                    if part3 == ipFirst3 and part2 == ipFirst2 and part1 == ipFirst1:
+                        part4 = ipFirst4
+                    else:
+                        part4 = 0
+                    while part4 <= 255:
+                        ipRange.append(str(part1)+'.'+str(part2)+'.'+str(part3)+'.'+str(part4)) # example ['192.168.1.1','192.168.1.2']
+                        if part4 == ipLast4 and part3 == ipLast3 and part2 == ipLast2 and part1 == ipLast1:
+                            part4 = 255 # next line part4=256 -> end of while
+                        part4 += 1
+                    if part3 == ipLast3 and part2 == ipLast2 and part1 == ipLast1:
+                        part3 = 255
+                    part3 += 1
+                if part2 == ipLast2 and part1 == ipLast1:
+                    part2 = 255
+                part2 += 1
+            part1 += 1
+        return ipRange # list of strings
 
     def createListDotParts(self, str2convert):
         # example: '192.168.1.0' -> ['192','168','1','0']

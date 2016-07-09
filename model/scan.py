@@ -316,6 +316,7 @@ class Scan:
 		self.nm.scan(hosts=hosts2scan, arguments="-p "+ports2scan)
 
 	def __actualiceDB(self, hosts2scan_longFormat=None): # example hosts2scan_longFormat=('192.168.1.50', '192.168.1.51', '192.168.1.52')
+		print 'Saving information in database'
 		macs_up = [] # using later to know which hosts mac put down
 		# check what scan type was maded
 		hostsWereScanned = self.ck.checkAnyIs1(self.scanOptions4Hosts)
