@@ -61,7 +61,10 @@ class Ask:
 	def ask4hosts2workOptions(self, auditNumber, revisionNumber, myIP):
 		# get ip to scan
 		option2scan = self.ask4hostsOption()
-		if option2scan == 1:
+		if option2scan == 0:
+			hosts2scan_shortFormat = -1
+			hosts2scan_longFormat = -1
+		elif option2scan == 1:
 			# check if the discovery option was maded for this revision
 			discoveryDone = self.db.check_tableHostsValues4ThisRevision(auditNumber, revisionNumber) # check values at hosts table for this revision
 			if discoveryDone == 1:
@@ -80,16 +83,20 @@ class Ask:
 	def ask4hostsOption(self):
 		print color('bcyan', 'Select IP')
 		print color('cyan', '1. IP discovered \n2. Specify IP')
+		print color('rojo', '0. Exit')
 		option2scan = ''
-		while option2scan != 1 and option2scan != 2:
+		while option2scan != 0 and option2scan != 1 and option2scan != 2:
 			option2scan = self.ask4number()
 		return option2scan
 
 	def askHostsIP(self, myIP):
 		hostsIP_shortFormat=''
 		while hostsIP_shortFormat == '':
-			hostsIP_shortFormat = raw_input('Type an IP or range (no spaces): ')
-			if self.ck.checkCharacter(hostsIP_shortFormat) == 1 or self.ck.checkIPparts(hostsIP_shortFormat) == -1:
+			hostsIP_shortFormat = raw_input('Type an IP or range (no spaces). Type 0 to exit: ')
+			if hostsIP_shortFormat == '0':
+				hostsIP_shortFormat = -1
+				hostsIP_longFormat = -1
+			elif self.ck.checkCharacter(hostsIP_shortFormat) == 1 or self.ck.checkIPparts(hostsIP_shortFormat) == -1:
 				self.ms.adviseInvalidSyntax()
 				hostsIP_shortFormat=''
 			else:
@@ -122,9 +129,9 @@ class Ask:
 			return [por2search_string, ports2search_listOfStrings]
 
 	def askOptionAllInfoHost(self):
-		print 'Export information in a .txt file (1) or show in window (2)?'
+		print 'Export information in a .txt file (1) or show in window (2)? Type 0 to exit'
 		mode = ""
-		while mode != 1 and mode != 2:
+		while mode != 0 and mode != 1 and mode != 2:
 			mode = self.ask4number()
 		return mode
 

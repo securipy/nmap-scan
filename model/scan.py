@@ -213,9 +213,11 @@ class Scan:
 			if revision_with_values != -1:
 				# ask how to get the information
 				modeHostInformation = self.ask.askOptionAllInfoHost() # int
-				hostsIP_longFormat = self.ask.ask4hosts2workOptions(self.auditNumber, self.revisionNumber, None)[1]
-				for hostIP in hostsIP_longFormat:
-					self.__createFile4host(hostIP, modeHostInformation)
+				if modeHostInformation != 0:
+					hostsIP_longFormat = self.ask.ask4hosts2workOptions(self.auditNumber, self.revisionNumber, None)[1]
+					if hostsIP_longFormat != -1:
+						for hostIP in hostsIP_longFormat:
+							self.__createFile4host(hostIP, modeHostInformation)
 			else:
 				print color('rojo', 'No hosts discovered for this revision')
 
